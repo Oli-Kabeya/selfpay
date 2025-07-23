@@ -1,0 +1,23 @@
+<svg width="300" height="300" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .text1 { font: bold 65px "Arial", sans-serif; fill: #F44336; }
+    .text2 { font: 35px "Arial", sans-serif; fill: #212121; }
+  </style>
+
+  <!-- Bonhomme stylisé -->
+  <path d="M150 400 C170 350, 230 300, 280 320 C260 370, 200 420, 150 400 Z" fill="#FFC107"/>
+  <circle cx="250" cy="220" r="30" fill="#FFC107"/>
+  <path d="M160 450 C200 410, 250 370, 300 390 C260 440, 200 480, 160 450 Z" fill="#F44336"/>
+
+  <!-- Sac stylisé (par-dessus le bonhomme) -->
+  <path d="M130 280 Q125 260 150 260 H280 Q310 260 300 290 L270 370 Q260 390 240 390 H150 Q120 390 130 360 Z" fill="#F44336"/>
+  <path d="M180 290 Q200 320 220 290" stroke="#FFC107" stroke-width="12" fill="none"/>
+  <path d="M160 260 Q160 230 180 220 Q200 210 220 230 Q230 240 230 260" stroke="#F44336" stroke-width="12" fill="none"/>
+
+  <!-- Texte "SelfPay" -->
+  <text x="330" y="280" class="text1">Self</text>
+  <text x="330" y="360" class="text1">Pay</text>
+
+  <!-- Slogan -->
+  <text x="150" y="500" class="text2">Scannez. Payez. Partez.</text>
+</svg>

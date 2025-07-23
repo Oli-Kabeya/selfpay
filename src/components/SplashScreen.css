@@ -1,0 +1,62 @@
+/* Assure que le body, html et root prennent toute la hauteur pour que 100% fonctionne */
+html, body{
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+.splash-container {
+  background-color: #121212;
+  height: 100dvh;
+  display: grid;
+  place-items: center;
+}
+
+.splash-logo {
+  max-width: 60%;
+  max-height: 60%;
+  padding-top: 35%;
+  object-fit: contain;
+  scroll-padding: 5%;
+  display: block;
+  animation: scaleFade 2s ease-in-out infinite;
+}
+
+
+@keyframes scaleFade {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+}
+
+/* splashscreen.css */
+@media screen and (orientation: landscape) {
+  body {
+    
+  }
+  body::before {
+    content: "Merci de passer en mode portrait pour utiliser SelfPay.";
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: black;
+    color: white;
+    font-size: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
+    z-index: 9999;
+  }
+}
+
