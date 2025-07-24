@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+  <title>SelfPay</title>
+  <link rel="stylesheet" href="style.css" /> <!-- si tu as un fichier CSS -->
+
+  <style>
+    body {
+      margin: 0;
+      background-color: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .scan-button {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ff0000, #ffff00);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: auto;
+      animation: fadeInOut 2s infinite ease-in-out;
+    }
+
+    .scan-button img {
+      width: 80px;
+      height: 80px;
+    }
+
+    @keyframes fadeInOut {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .scan-text {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 18px;
+      color: #ccc;
+    }
+
+    footer {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #111;
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      border-top: 1px solid #333;
+    }
+
+    footer button {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scan-button">
+    <!-- Logo SelfPay blanc à placer ici -->
+    <img src="/icons/logo-selfpay-blanc.png" alt="SelfPay Logo" />
+  </div>
+  <div class="scan-text">Touchez pour scanner</div>
+
+  <footer>
+    <button onclick="goTo('panier')">🛒 Panier</button>
+    <button onclick="goTo('historique')">🕒 Historique</button>
+    <button onclick="goTo('parametres')">⚙️ Paramètres</button>
+    <button onclick="goTo('profil')">👤 Profil</button>
+  </footer>
+
+  <script>
+    function goTo(page) {
+      alert("Navigation vers " + page); // remplace par window.location ou vue route
+    }
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('Service Worker enregistré'))
+          .catch(err => console.log('Échec SW:', err));
+      });
+    }
+  </script>
+</body>
+</html>
