@@ -5,7 +5,7 @@ import "./SplashScreen.css";
 const SplashScreen = () => {
   return (
     <div className="splash-container">
-      <img src="public/icons/logo-pwa.png" alt="Logo SelfPay" className="logo-animated" />
+      <img src="/icons/logo-pwa.png" alt="Logo SelfPay" className="logo-animated" />
       <div className="text-center mt-4">
   <p className="text-xs  tracking-widest" style={{ color: '#f5f5f5' }}>
     from

@@ -11,6 +11,7 @@ html, body{
   height: 100dvh;
   display: grid;
   place-items: center;
+  padding-top:350px;
 }
 
 .logo-animated {
