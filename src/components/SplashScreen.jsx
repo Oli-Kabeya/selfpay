@@ -1,4 +1,3 @@
-import React from "react";
 import React, { useEffect, useState } from 'react';
 import logo from "../assets/logo-pwa.png";
 import "./SplashScreen.css";
