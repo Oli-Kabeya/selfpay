@@ -16,6 +16,7 @@ html, body{
 .logo-animated {
   width: 60%;
   height: 60%;
+  margin-top: 35%;
 }
   /* transform: scale(1);
   transition: opacity 0.3s ease-in;
