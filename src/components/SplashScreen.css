@@ -14,9 +14,8 @@ html, body{
 }
 
 .logo-animated {
-  width: auto;
-  height: auto;
-  display: block;
+  width: 250px;
+  height: 250px;
   margin: auto;
 }
   /* transform: scale(1);
