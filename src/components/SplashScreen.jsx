@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import logo from "../assets/logo-pwa.png";
+//import logo from "../assets/logo-pwa.png";
 import "./SplashScreen.css";
 
 const SplashScreen = () => {
   return (
     <div className="splash-container">
-      <img src={logo} alt="Logo SelfPay" className="logo-animated" />
+      <img src="public/icons/logo-pwa.png" alt="Logo SelfPay" className="logo-animated" />
       <div className="text-center mt-4">
   <p className="text-xs  tracking-widest" style={{ color: '#f5f5f5' }}>
     from
