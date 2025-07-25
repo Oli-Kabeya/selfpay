@@ -14,14 +14,14 @@ html, body{
 }
 
 .logo-animated {
-  width: 120px;
-  height: 120px;
-  opacity: 0;
-  transform: scale(1);
+  width: 60%;
+  height: 60%;
+}
+  /* transform: scale(1);
   transition: opacity 0.3s ease-in;
 }
 
-.logo-animated.loaded {
+/* .logo-animated.loaded {
   opacity: 1;
   animation: pulse 2s ease-in-out infinite;
 }
