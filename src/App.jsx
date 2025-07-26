@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Splashscreen from './components/SplashScreen';
+import { Routes, Route } from 'react-router-dom';
+import Scan from './pages/Scan';
 import MainApp from './components/MainApp';
 
 function App() {
@@ -8,15 +10,16 @@ function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowSplash(false);
-    }, 3000); // 3 secondes
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, []);
 
   return (
-    <div className="bg-black min-h-screen">
-      {showSplash ? <Splashscreen /> : <MainApp />}
-    </div>
+    <Routes>
+      <Route path="/" element={<Splashscreen />} />
+      <Route path="/scan" element={<Scan />} />
+    </Routes>
   );
 }
 

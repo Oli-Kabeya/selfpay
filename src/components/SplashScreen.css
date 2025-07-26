@@ -2,6 +2,7 @@
 html, body{
   margin: 0;
   padding: 0;
+  /*background-color: #121212;*/
   height: 100%;
   width: 100%;
   overflow: hidden;
@@ -11,7 +12,8 @@ html, body{
   height: 100dvh;
   display: grid;
   place-items: center;
-  padding-top:350px;
+  padding-top:50px;
+  z-index: 1500;
 }
 
 .logo-animated {

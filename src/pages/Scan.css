@@ -1,0 +1,77 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: Arial, sans-serif;
+}
+
+.scan-page {
+  background-color: #111416; /* Fond sombre */
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 60px; /* Pour espace avec la barre nav */
+}
+
+.scan-title {
+  margin-top: 40px;
+  color: white;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.scan-button-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.scan-button {
+  width: 160px;
+  height: 160px;
+  background-color: linear-gradient(135deg,#FF5E3A,#FFBA00); /* Couleur orange-rouge SelfPay */
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 64px;
+  font-weight: bold;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.animated-fade{
+    animation: fadeInOut 2.5s ease-in-out infinite;
+}
+@keyframes fadeInOut {
+    0% {opacity: 1;}
+    50%{opacity: 0.75;}
+    100%{opacity: 1;}
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: #1A1C1E; /* Footer légèrement plus clair */
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 60px;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+  font-size: 12px;
+}
+
+.nav-item i {
+  font-size: 18px;
+  margin-bottom: 4px;
+}

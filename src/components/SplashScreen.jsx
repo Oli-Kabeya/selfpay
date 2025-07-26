@@ -1,8 +1,18 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 //import logo from "../assets/logo-pwa.png";
 import "./SplashScreen.css";
 
 const SplashScreen = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigate('/Scan'); // Redirection directe après 2 secondes
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [navigate]);
   return (
     <div className="splash-container">
       <img src="/icons/logo-pwa.png" alt="Logo SelfPay" className="logo-animated" />
@@ -27,6 +37,8 @@ const SplashScreen = () => {
     </div>
     
   );
+  <script>document.querySelector('meta[name="theme-color"]').setAttribute('content', '#121212');
+</script>
 };
 
 export default SplashScreen;
