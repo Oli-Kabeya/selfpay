@@ -5,7 +5,7 @@ body, html {
 }
 
 .scan-page {
-  background-color: #111416; /* Fond sombre */
+  background-color: #121212; /* Fond sombre */
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -68,7 +68,8 @@ body, html {
   flex-direction: column;
   align-items: center;
   color: white;
-  font-size: 30px;
+  font-size: 22px;
+  border-right: 1px solid #707070;
 }
 
 .nav-item i {

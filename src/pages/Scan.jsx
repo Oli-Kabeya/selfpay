@@ -1,5 +1,6 @@
 import React from 'react';
 import './Scan.css';
+import logo from '../assets/logo_pwa.png';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, History, User, Settings } from 'lucide-react'; // icônes pour chaque bouton
 
@@ -11,7 +12,7 @@ export default function Scan() {
       <div className="scan-title">Touchez pour ajouter un produit</div>
 
       <div className="scan-button-container">
-        <img src="src/assets/logo_pwa.png" alt="Logo SelfPay" className="scan-button animated-fade" />
+        <img src={logo} alt="Logo SelfPay" className="scan-button animated-fade" />
       </div>
 
       <div className="bottom-nav">
