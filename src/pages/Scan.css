@@ -15,11 +15,11 @@ body, html {
 }
 
 .scan-title {
-  margin-top: 20%;
-  margin-bottom: 5%;
+  margin-top: 50%;
+  margin-bottom: 10%;
   color: white;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
-  font-weight: 700;
+  font-weight: 650;
   font-size: 30px;
   text-align: center;
 }
@@ -38,7 +38,7 @@ body, html {
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 0 10px 10px rgba(255,255,255,0.1);
 }
 .animated-fade{
     animation: fadeInOut 2.5s ease-in-out infinite;
@@ -58,9 +58,9 @@ body, html {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  height: 125px;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
+  height: 175px;
+  border-top-left-radius: 35px;
+  border-top-right-radius: 35px;
 }
 
 .nav-item {
@@ -68,11 +68,10 @@ body, html {
   flex-direction: column;
   align-items: center;
   color: white;
-  font-size: 22px;
-  border-right: 1px solid #707070;
+  font-size: 19px;
 }
 
 .nav-item i {
-  font-size: 30px;
+  font-size: 20px;
   margin-bottom: 6px;
 }
