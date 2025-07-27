@@ -11,7 +11,7 @@ export default function Scan() {
       <div className="scan-title">Touchez pour ajouter un produit</div>
 
       <div className="scan-button-container">
-        <div className="scan-button animated-fade">SP</div>
+        <img src="src/assets/logo_pwa.png" alt="Logo SelfPay" className="scan-button animated-fade" />
       </div>
 
       <div className="bottom-nav">
