@@ -12,14 +12,20 @@ html, body{
   height: 100dvh;
   display: grid;
   place-items: center;
-  padding-top:50px;
+  padding-top:35%;
   z-index: 1500;
 }
 
 .logo-animated {
-  width: 250px;
-  height: 250px;
+  width: 70%;
+  height: 70%;
   margin: auto;
+}
+
+.text-center{
+  position :fixe;
+  display:block;
+  margin-bottom: 10%;
 }
   /* transform: scale(1);
   transition: opacity 0.3s ease-in;
