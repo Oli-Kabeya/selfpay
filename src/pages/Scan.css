@@ -15,7 +15,7 @@ body, html {
 }
 
 .scan-title {
-  margin-top: 35%;
+  margin-top: 25%;
   margin-bottom: 10%;
   color: white;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
@@ -32,8 +32,8 @@ body, html {
 }
 
 .scan-button {
-  width: 95%;
-  height: 95%;
+  width: 85%;
+  height: 85%;
   border-radius: 50%;
   display: flex;
   justify-content: center;
