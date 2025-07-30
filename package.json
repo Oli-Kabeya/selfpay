@@ -12,10 +12,13 @@
   "dependencies": {
     "@firebasegen/default-connector": "file:dataconnect-generated/js/default-connector",
     "autoprefixer": "^10.4.21",
+    "firebase": "^11.10.0",
     "lucide-react": "^0.525.0",
     "postcss": "^8.5.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-firebase-hooks": "^5.1.1",
+    "react-qr-barcode-scanner": "^2.1.8",
     "react-router-dom": "^7.7.1"
   },
   "devDependencies": {
@@ -33,6 +36,6 @@
     "postcss": "^8.x.x",
     "tailwindcss": "^4.1.11",
     "vite": "^7.0.4",
-    "vite-plugin-pwa": "^1.0.1"
+    "vite-plugin-pwa": "^1.0.2"
   }
 }

@@ -1,4 +1,6 @@
+@import 'tailwindcss';         /* toujours en premier */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import 'tailwindcss';
+
+/* Tes styles personnalisés en dessous */
