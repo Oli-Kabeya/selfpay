@@ -1,4 +1,3 @@
-// App.jsx
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import SplashScreen from './components/SplashScreen';
@@ -14,15 +13,17 @@ function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [initialRoute, setInitialRoute] = useState(null);
 
-  // Gestion du thème
+  // Gestion du thème (light/dark)
   const [theme, setTheme] = useState(() => {
-    // Init theme from localStorage or default to 'light'
     return localStorage.getItem('theme') || 'light';
   });
 
   useEffect(() => {
-    // Applique le thème sur le root HTML
-    document.documentElement.setAttribute('data-theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
     localStorage.setItem('theme', theme);
   }, [theme]);
 

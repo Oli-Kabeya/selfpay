@@ -5,10 +5,9 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import FooterNav from '../components/FooterNav';
 import useTranslation from '../hooks/useTranslation';
 
-export default function Profile() {
+export default function Profile({ theme, setTheme }) {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(true);
-  const [theme, setTheme] = useState('light');
   const { t, lang, setLang } = useTranslation();
   const navigate = useNavigate();
 
@@ -22,10 +21,6 @@ export default function Profile() {
       }
     });
 
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    setTheme(savedTheme);
-    document.documentElement.setAttribute('data-theme', savedTheme);
-
     return () => unsubscribe();
   }, [navigate]);
 
@@ -37,8 +32,6 @@ export default function Profile() {
   const toggleTheme = (e) => {
     const newTheme = e.target.value;
     setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
   };
 
   const toggleLang = (e) => {
@@ -99,7 +92,6 @@ export default function Profile() {
         {t('logout')}
       </button>
 
-      {/* Footer sans bouton central */}
       <FooterNav noScanButton />
     </div>
   );

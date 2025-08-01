@@ -1,3 +1,4 @@
+/* Reset global */
 html, body {
   margin: 0;
   padding: 0;
@@ -16,6 +17,9 @@ html, body {
   --from-text-color: #666666;
   --gradient-start: #ff3c3c;
   --gradient-end: #ffc800;
+  --slogan-color: #222222;
+  --scanera-shadow-color1: #ff7a00; /* orange */
+  --scanera-shadow-color2: #ffc800; /* jaune */
 }
 
 :root[data-theme='dark'] {
@@ -24,14 +28,20 @@ html, body {
   --from-text-color: #aaaaaa;
   --gradient-start: #ff3c3c;
   --gradient-end: #ffc800;
+  --slogan-color: #cccccc;
+  --scanera-shadow-color1: #ff7a00;
+  --scanera-shadow-color2: #ffc800;
 }
 
+/* Container splash */
 .splash-container {
   background-color: var(--color-bg);
   height: 100dvh;
   position: relative;
+  color: var(--color-text);
 }
 
+/* Logo centré */
 .logo-animated {
   width: 60%;
   height: auto;
@@ -42,6 +52,7 @@ html, body {
   margin-bottom: 35%;
 }
 
+/* Texte "from" */
 .text-center {
   position: fixed;
   bottom: 5%;
@@ -58,28 +69,28 @@ html, body {
   user-select: none;
 }
 
+/* Texte Scanera avec text-shadow net et gradient */
 .scanera-text {
   margin: 0;
   background-image: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-fill-color: transparent;
   font-weight: 600;
   text-transform: uppercase;
   font-size: 1rem;
   user-select: none;
+  filter: none; /* enlève flou */
+  text-shadow:
+    0 0 2px var(--scanera-shadow-color1),
+    0 0 4px var(--scanera-shadow-color2);
 }
 
-
-
-/* ... tes styles existants ... */
-
+/* Slogan en italique sous logo */
 .slogan-text {
   position: fixed;
-  top: calc(45% + 110px); /* rapproché de l’image, ajuste si besoin */
+  top: 52%;
   left: 50%;
-  top:52%;
   transform: translateX(-50%);
   font-style: italic;
   font-weight: 100;
@@ -87,43 +98,12 @@ html, body {
   user-select: none;
   text-align: center;
   letter-spacing: 0.1em;
-  white-space: nowrap; /* une seule ligne */
+  white-space: nowrap;
   z-index: 10;
   color: var(--slogan-color);
 }
-/* Couleurs claires / sombres pour le slogan */
-:root[data-theme='light'] {
-  --slogan-color: #222222; /* gris très foncé */
-}
 
-:root[data-theme='dark'] {
-  --slogan-color: #cccccc; /* gris très clair */
-} 
-
-/* Assure que le gradient Scanera reste lumineux en clair et sombre */
-.scanera-text {
-  margin: 0;
-  background-image: linear-gradient(
-    90deg,
-    #ff3c3c 0%,
-    #ff7a00 40%,
-    #ffc800 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 600;
-  text-transform: uppercase;
-  font-size: 1rem;
-  user-select: none;
-  filter: drop-shadow(0 0 4px rgba(255, 120, 0, 0.8));
-}
-
-/* ... reste inchangé ... */
-
-
-
-/* Mode paysage : avertissement */
+/* Avertissement mode paysage */
 @media screen and (orientation: landscape) {
   body::before {
     content: "Merci de passer en mode portrait pour utiliser SelfPay.";

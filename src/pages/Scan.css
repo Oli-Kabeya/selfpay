@@ -106,6 +106,46 @@ body, html {
   to { opacity: 0; }
 }
 
+
+.confirmationOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 300px; /* même taille que la vidéo */
+  height: 300px;
+  background-color: rgba(0,0,0,0.7);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  z-index: 1000;
+}
+.confirmationOverlay p {
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: bold;
+}
+.confirmationOverlay button {
+  margin: 8px 0;
+  padding: 10px 16px;
+  font-size: 16px;
+  width: 80%;
+  cursor: pointer;
+  border: none;
+  border-radius: 5px;
+}
+.confirmationOverlay button:first-of-type {
+  background-color: #28a745; /* vert */
+  color: white;
+}
+.confirmationOverlay button:last-of-type {
+  background-color: #dc3545; /* rouge */
+  color: white;
+}
+
+
 /* Page animation */
 .page-transition {
   animation: fadeInSlide 0.3s ease-in-out;
