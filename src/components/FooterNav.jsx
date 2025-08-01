@@ -1,13 +1,15 @@
 // src/components/FooterNav.jsx
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingCart, History, User, PlusCircle } from 'lucide-react';
-import './FooterNav.css'; // styles séparés ou réutiliser Scan.css
+import { ShoppingCart, History, Settings, Camera } from 'lucide-react';
+import './FooterNav.css';
+import useTranslation from '../hooks/useTranslation';
 
 export default function FooterNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
+  const { t } = useTranslation();
 
   const getButtonClass = (path) => {
     return currentPath === path ? 'nav-item active-nav' : 'nav-item';
@@ -15,21 +17,24 @@ export default function FooterNav() {
 
   return (
     <div className="bottom-nav">
+      <div className={getButtonClass('/scan')} onClick={() => navigate('/scan')}>
+        <Camera size={20} />
+        <span>{t('scan')}</span>
+      </div>
+
       <div className={getButtonClass('/panier')} onClick={() => navigate('/panier')}>
         <ShoppingCart size={20} />
-        <span>Panier</span>
+        <span>{t('cart')}</span>
       </div>
+
       <div className={getButtonClass('/historique')} onClick={() => navigate('/historique')}>
         <History size={20} />
-        <span>Historique</span>
+        <span>{t('history')}</span>
       </div>
-      <div className={getButtonClass('/scan')} onClick={() => navigate('/scan')}>
-        <PlusCircle size={20} />
-        <span>Ajouter</span>
-      </div>
-      <div className={getButtonClass('/profil')} onClick={() => navigate('/profil')}>
-        <User size={20} />
-        <span>Profil</span>
+
+      <div className={getButtonClass('/settings')} onClick={() => navigate('/settings')}>
+        <Settings size={20} />
+        <span>{t('settings')}</span>
       </div>
     </div>
   );

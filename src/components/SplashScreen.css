@@ -1,56 +1,82 @@
-/* Assure que le body, html et root prennent toute la hauteur pour que 100% fonctionne */
-html, body{
+html, body {
   margin: 0;
   padding: 0;
-  /*background-color: #121212;*/
   height: 100%;
   width: 100%;
   overflow: hidden;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
+
+/* Variables CSS par défaut (mode clair) */
+:root {
+  --background-color: #fff;
+  --text-color: #222;
+  --from-text-color: #666;
+  --gradient-start: #ff3c3c;
+  --gradient-end: #ffc800;
+}
+
+/* Mode sombre */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #121212;
+    --text-color: #f5f5f5;
+    --from-text-color: #aaa;
+    --gradient-start: #ff3c3c;
+    --gradient-end: #ffc800;
+  }
+}
+
 .splash-container {
-  background-color: #121212;
+  background-color: var(--background-color);
   height: 100dvh;
-  /*display: grid;
-  place-items: center;
-  border: 2px solid red;
-  z-index: 1500;*/
+  position: relative;
 }
 
 .logo-animated {
   width: 60%;
-  height: 30%;
-  position:fixed;
+  height: auto;
+  position: fixed;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   margin-bottom: 35%;
-  top:45%;
-  left:50%;
-  transform: translate(-50%,-50%);
 }
 
-.text-center{
-  position:fixed;
+/* Centrer le texte en bas, et position plus fluide */
+.text-center {
+  position: fixed;
   bottom: 5%;
-  left:40%;
-}
-  /* transform: scale(1);
-  transition: opacity 0.3s ease-in;
-}
-
-/* .logo-animated.loaded {
-  opacity: 1;
-  animation: pulse 2s ease-in-out infinite;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
 }
 
-@keyframes pulse {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.8; }
-  100% { transform: scale(1); opacity: 1; }
+.from-text {
+  color: var(--from-text-color);
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  user-select: none;
 }
 
-/* splashscreen.css */
+.scanera-text {
+  margin: 0;
+  background-image: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-fill-color: transparent;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 1rem;
+  user-select: none;
+}
+
+/* Portrait only warning on landscape */
 @media screen and (orientation: landscape) {
-  body {
-    
-  }
   body::before {
     content: "Merci de passer en mode portrait pour utiliser SelfPay.";
     position: fixed;
@@ -66,4 +92,3 @@ html, body{
     z-index: 9999;
   }
 }
-

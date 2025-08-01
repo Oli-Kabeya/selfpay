@@ -1,0 +1,19 @@
+{
+  "welcome": "Welcome",
+  "profile": "Profile",
+  "logout": "Logout",
+  "cart": "Cart",
+  "history": "History",
+  "scan": "Scan",
+  "settings": "Settings",
+  "total": "Total",
+  "payment": "Payment",
+  "sendCode": "Send Code",
+  "verifyCode": "Verify Code",
+  "loading": "Loading...",
+  "chooseTheme": "Choose theme",
+  "light": "Light",
+  "dark": "Dark",
+  "language": "Language",
+  "selectLanguage": "Select Language"
+}

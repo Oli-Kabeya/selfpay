@@ -1,20 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
-import { getFirestore, doc, getDoc, setDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import BarcodeScannerComponent from 'react-qr-barcode-scanner';
-
-const enregistrerAchat = async (montantTotal) => {
-  const user = auth.currentUser;
-  if (user) {
-    const achatsRef = collection(getFirestore(), 'achats', user.uid, 'liste');
-    await addDoc(achatsRef, {
-      date: serverTimestamp(),
-      montant: montantTotal,
-    });
-  }
-};
+import { useTranslation } from 'react-i18next';
 
 const Panier = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
   const [panier, setPanier] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
@@ -66,9 +59,9 @@ const Panier = () => {
         await setDoc(panierRef, { articles: nouveauPanier });
       }
 
-      setMessage('Produit supprimé avec succès.');
+      setMessage(t('productDeletedSuccess'));
     } else {
-      setMessage('Produit non trouvé dans le panier.');
+      setMessage(t('productNotFound'));
     }
 
     setScanning(false);
@@ -77,35 +70,18 @@ const Panier = () => {
 
   const total = panier.reduce((sum, item) => sum + (item.prix || 0), 0);
 
-  const validerPanier = async () => {
-    if (!auth.currentUser) {
-      setMessage("Veuillez vous connecter pour valider votre panier.");
-      return;
-    }
-
-    try {
-      await enregistrerAchat(total);
-
-      const panierRef = doc(db, 'paniers', auth.currentUser.uid);
-      await setDoc(panierRef, { articles: [] });
-      setPanier([]);
-      localStorage.removeItem('panier');
-
-      setMessage("Achat validé !");
-    } catch (err) {
-      setMessage("Erreur lors de la validation.");
-      console.error(err);
-    }
+  const allerAuPaiement = () => {
+    navigate('/paiement');
   };
 
-  if (loading) return <div>Chargement du panier...</div>;
+  if (loading) return <div>{t('loadingCart')}</div>;
 
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Mon Panier</h2>
+      <h2 className="text-xl font-bold mb-4">{t('myCart')}</h2>
 
       {panier.length === 0 ? (
-        <p>Votre panier est vide.</p>
+        <p>{t('cartEmpty')}</p>
       ) : (
         <>
           <ul className="mb-4">
@@ -115,12 +91,12 @@ const Panier = () => {
               </li>
             ))}
           </ul>
-          <p className="font-bold mb-4">Total : {total} $</p>
+          <p className="font-bold mb-4">{t('total')}: {total} $</p>
           <button
-            onClick={validerPanier}
+            onClick={allerAuPaiement}
             className="bg-green-600 text-white px-4 py-2 rounded mb-4"
           >
-            Valider l'achat
+            {t('validatePurchase')}
           </button>
         </>
       )}
@@ -129,7 +105,7 @@ const Panier = () => {
         onClick={() => setScanning(true)}
         className="bg-yellow-500 text-white px-4 py-2 rounded"
       >
-        Scanner pour supprimer un produit
+        {t('scanToDelete')}
       </button>
 
       {message && <p className="mt-2 text-sm text-blue-500">{message}</p>}
@@ -149,7 +125,7 @@ const Panier = () => {
             onClick={() => setScanning(false)}
             className="mt-2 text-red-500 text-sm"
           >
-            Annuler le scan
+            {t('cancelScan')}
           </button>
         </div>
       )}

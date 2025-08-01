@@ -1,0 +1,19 @@
+{
+  "welcome": "Bienvenue",
+  "profile": "Profil",
+  "logout": "Déconnexion",
+  "cart": "Panier",
+  "history": "Historique",
+  "scan": "Scanner",
+  "settings": "Paramètres",
+  "total": "Total",
+  "payment": "Paiement",
+  "sendCode": "Envoyer le code",
+  "verifyCode": "Vérifier le code",
+  "loading": "Chargement...",
+  "chooseTheme": "Choisir le thème",
+  "light": "Clair",
+  "dark": "Sombre",
+  "language": "Langue",
+  "selectLanguage": "Sélectionnez la langue"
+}

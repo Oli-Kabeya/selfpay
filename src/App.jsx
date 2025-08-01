@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import SplashScreen from './components/SplashScreen';
 import Scan from './pages/Scan';
 import Auth from './pages/Auth';
+import Profile from './pages/Profile';
+import Historique from './pages/Historique';
+import Panier from './pages/Panier'; // Importé ici
 import PrivateRoute from './components/PrivateRoute';
 import { auth } from './firebase';
 
@@ -16,7 +19,7 @@ function App() {
         setInitialRoute(user ? '/scan' : '/auth');
         setShowSplash(false);
       });
-    }, 3000);
+    }, 3000); // Splash pendant 3s
 
     return () => clearTimeout(timer);
   }, []);
@@ -28,6 +31,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/auth" element={<Auth />} />
+        
         <Route
           path="/scan"
           element={
@@ -36,7 +40,36 @@ function App() {
             </PrivateRoute>
           }
         />
-        <Route path="/" element={<Navigate to={initialRoute} replace />} />
+
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <Profile />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/historique"
+          element={
+            <PrivateRoute>
+              <Historique />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/panier"
+          element={
+            <PrivateRoute>
+              <Panier />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Redirection vers auth ou scan selon connexion */}
+        <Route path="*" element={<Navigate to={initialRoute} replace />} />
       </Routes>
     </Router>
   );

@@ -21,7 +21,7 @@ export default function Auth() {
   const handleSendCode = async (e) => {
     e.preventDefault();
     setError('');
-    if (!phone.startsWith('+')) {
+    if (!phone.startsWith('+243')) {
       setError('Le numéro doit commencer par +243...');
       return;
     }
@@ -47,7 +47,7 @@ export default function Auth() {
       setLoading(true);
       await confirmationResult.confirm(otp);
       alert('Connexion réussie ✅');
-      window.location.href = '/profile';
+      window.location.href = '/profile'; // Tu peux remplacer par navigate si tu préfères
     } catch (err) {
       setError('Code incorrect. Réessaie.');
       console.error(err);
@@ -68,6 +68,7 @@ export default function Auth() {
           onChange={(e) => setPhone(e.target.value)}
           className="w-full p-2 border border-gray-600 rounded bg-[#1E1E1E] text-[#F5F5F5]"
           disabled={!!confirmationResult || loading}
+          autoFocus={!confirmationResult}
         />
         {confirmationResult && (
           <input
@@ -77,6 +78,7 @@ export default function Auth() {
             onChange={(e) => setOtp(e.target.value)}
             className="w-full p-2 border border-gray-600 rounded bg-[#1E1E1E] text-[#F5F5F5]"
             disabled={loading}
+            autoFocus
           />
         )}
 
