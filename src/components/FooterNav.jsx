@@ -1,4 +1,3 @@
-// FooterNav.jsx
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, History, Settings, Camera } from 'lucide-react';

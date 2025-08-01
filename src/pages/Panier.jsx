@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-import BarcodeScannerComponent from 'react-qr-barcode-scanner';
-import { useTranslation } from 'react-i18next';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 import FooterNav from '../components/FooterNav';
+import { useTranslation } from 'react-i18next';
+import { X, ScanLine } from 'lucide-react';
+import './Panier.css';
 
 const Panier = () => {
   const { t } = useTranslation();
@@ -12,8 +14,11 @@ const Panier = () => {
   const [panier, setPanier] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [message, setMessage] = useState('');
-
+  const [lastScanned, setLastScanned] = useState('');
+  const videoRef = useRef(null);
+  const codeReader = useRef(null);
   const db = getFirestore();
 
   useEffect(() => {
@@ -47,99 +52,145 @@ const Panier = () => {
     chargerPanier();
   }, [db]);
 
+  useEffect(() => {
+    if (scanning && !showConfirmation) {
+      codeReader.current = new BrowserMultiFormatReader();
+      codeReader.current
+        .decodeFromVideoDevice(null, videoRef.current, (result, err) => {
+          if (result) {
+            const code = result.getText();
+            if (code !== lastScanned) {
+              setLastScanned(code);
+              supprimerProduitParScan(code);
+              codeReader.current.reset();
+              setShowConfirmation(true);
+            }
+          }
+        })
+        .catch((err) => {
+          console.error('Erreur caméra:', err);
+          setScanning(false);
+        });
+
+      return () => {
+        if (codeReader.current) {
+          codeReader.current.reset();
+          codeReader.current = null;
+        }
+      };
+    }
+  }, [scanning, showConfirmation, lastScanned]);
+
   const supprimerProduitParScan = async (codeScanne) => {
-    const produitIndex = panier.findIndex(item => item.code === codeScanne);
-    if (produitIndex !== -1) {
-      const nouveauPanier = panier.filter((_, i) => i !== produitIndex);
+    const index = panier.findIndex(item => item.code === codeScanne);
+    if (index !== -1) {
+      const nouveauPanier = panier.filter((_, i) => i !== index);
       setPanier(nouveauPanier);
       localStorage.setItem('panier', JSON.stringify(nouveauPanier));
-
       const user = auth.currentUser;
       if (user) {
         const panierRef = doc(db, 'paniers', user.uid);
         await setDoc(panierRef, { articles: nouveauPanier });
       }
-
       setMessage(t('productDeletedSuccess'));
     } else {
       setMessage(t('productNotFound'));
     }
-
-    setScanning(false);
     setTimeout(() => setMessage(''), 3000);
   };
 
-  const total = panier.reduce((sum, item) => sum + (item.prix || 0), 0);
-
-  const allerAuPaiement = () => {
-    navigate('/paiement');
+  const handleContinueScan = () => {
+    setLastScanned('');
+    setShowConfirmation(false);
+    setScanning(true);
   };
+
+  const handleCloseCamera = () => {
+    setScanning(false);
+    setShowConfirmation(false);
+    setLastScanned('');
+  };
+
+  const total = panier.reduce((sum, item) => sum + (item.prix || 0), 0);
+  const allerAuPaiement = () => navigate('/paiement');
 
   if (loading) {
     return (
-      <div className="h-screen flex justify-center items-center bg-white dark:bg-[#121212]">
-        <p className="text-lg text-gray-800 dark:text-white">{t('loadingCart')}</p>
+      <div className="loader-container bg-background text-primary">
+        <div>
+          {t('loadingCart')}
+          <div className="loader-dots"><span></span><span></span><span></span></div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#121212] p-4 pb-20 page-transition">
-      <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white text-center">
-        {t('myCart')}
-      </h2>
+    <div className="panier-page bg-background text-primary pb-28 max-w-md mx-auto">
+      <div className="panier-total text-center text-lg font-semibold">
+        {t('total')}: {total} $
+      </div>
 
-      {panier.length === 0 ? (
-        <p className="text-center text-gray-800 dark:text-gray-200">{t('cartEmpty')}</p>
-      ) : (
-        <>
-          <ul className="mb-6">
+      <div className="panier-content">
+        {panier.length === 0 ? (
+          <div className="empty-cart">
+            <ScanLine className="empty-icon" />
+            <p className="empty-text">{t('cartEmptyMessage')}</p>
+          </div>
+        ) : (
+          <ul className="product-list">
             {panier.map((item, index) => (
-              <li key={index} className="mb-3 border-b border-gray-300 dark:border-gray-600 pb-2 text-gray-900 dark:text-gray-100">
-                {item.nom} – {item.prix} $
+              <li key={index} className="product-card">
+                <span className="product-name">{item.nom}</span>
+                <span className="product-price">{item.prix} $</span>
               </li>
             ))}
           </ul>
+        )}
+      </div>
 
-          <p className="font-semibold text-lg mb-4 text-gray-900 dark:text-gray-100 text-center">
-            {t('total')}: {total} $
-          </p>
-
+      {panier.length > 0 && (
+        <>
           <button
             onClick={allerAuPaiement}
-            className="w-full p-3 rounded-xl text-white font-semibold bg-gradient-to-r from-[#FF5E3A] to-[#FFBA00] shadow hover:opacity-90 mb-4"
+            className="w-full p-3 rounded-xl text-white font-semibold bg-gradient-to-r from-[#FF5E3A] to-[#FFBA00] shadow hover:opacity-90 mb-2"
           >
             {t('validatePurchase')}
+          </button>
+
+          <button
+            onClick={() => setScanning(true)}
+            className="w-full p-3 rounded-xl bg-blue-600 text-white font-semibold shadow hover:opacity-90"
+          >
+            {t('scanToDelete')}
           </button>
         </>
       )}
 
-      <button
-        onClick={() => setScanning(true)}
-        className="w-full p-3 rounded-xl bg-blue-600 text-white font-semibold shadow hover:opacity-90"
-      >
-        {t('scanToDelete')}
-      </button>
-
       {message && <p className="mt-4 text-center text-blue-500 text-sm">{message}</p>}
 
       {scanning && (
-        <div className="mt-6 flex flex-col items-center">
-          <BarcodeScannerComponent
-            width={300}
-            height={300}
-            onUpdate={(err, result) => {
-              if (result) {
-                supprimerProduitParScan(result.text);
-              }
-            }}
+        <div className="camera-container">
+          <video
+            ref={videoRef}
+            width="300"
+            height="300"
+            style={{ borderRadius: 8, border: '2px solid #ccc' }}
+            muted
+            autoPlay
+            playsInline
           />
-          <button
-            onClick={() => setScanning(false)}
-            className="mt-4 text-red-500 text-sm font-medium"
-          >
-            {t('cancelScan')}
+          <button onClick={handleCloseCamera} className="close-button">
+            <X size={18} /> {t('closeCamera')}
           </button>
+
+          {showConfirmation && (
+            <div className="confirmationOverlay">
+              <p>{t('productDeletedSuccess')}</p>
+              <button onClick={handleContinueScan}>{t('continueScanning')}</button>
+              <button onClick={handleCloseCamera}>{t('finish')}</button>
+            </div>
+          )}
         </div>
       )}
 

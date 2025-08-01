@@ -1,0 +1,201 @@
+.panier-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  padding: 0 16px 80px; /* padding horizontal conservé */
+  box-sizing: border-box;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.panier-total {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background-color: transparent; /* transparent pour ne pas créer de "boîte" visible */
+  color: var(--color-text);
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding: 16px 0; /* padding horizontal supprimé ici */
+  text-align: center;
+  left: 16px; /* égal au padding horizontal du parent */
+  right: 16px; /* égal au padding horizontal du parent */
+  margin: 0 auto;
+  box-sizing: border-box;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* bordure discrète en bas */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+
+.panier-content {
+  flex-grow: 1; /* occupe tout l’espace restant */
+  overflow-y: auto;
+  padding-top: 12px;
+  margin-bottom: 16px; /* espace sous contenu scrollable */
+}
+
+.product-list {
+  list-style: none;
+  padding: 0;
+  max-width: 480px;
+  margin: 0 auto 24px auto;
+}
+
+.product-card {
+  background-color: var(--color-card, #fff);
+  color: var(--color-text, #111);
+  border-radius: 10px;
+  padding: 14px 20px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 500;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.product-card:hover {
+  background-color: var(--color-primary, #ff6b00);
+  color: white;
+  cursor: default;
+}
+
+.product-name {
+  font-size: 1rem;
+  max-width: 70%;
+  word-break: break-word;
+}
+
+.product-price {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.empty-cart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 80px;
+  color: var(--color-text, #111);
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+  user-select: none;
+  text-align: center;
+}
+
+.empty-icon {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 20px;
+  color: var(--color-primary, #ff6b00);
+  opacity: 0.7;
+}
+
+.empty-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* Boutons scrollables */
+.bouton-panier {
+  width: 100%;
+  max-width: 480px;
+  margin: 12px auto 40px auto; /* marge bottom pour espace FooterNav */
+  padding: 14px 0;
+  border-radius: 12px;
+  font-weight: 600;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+  display: block;
+  text-align: center;
+}
+
+.bouton-valider {
+  background: linear-gradient(to right, #FF5E3A, #FFBA00);
+}
+
+.bouton-valider:hover {
+  opacity: 0.9;
+}
+
+.bouton-ajouter {
+  background-color: #2563eb;
+}
+
+.bouton-ajouter:hover {
+  opacity: 0.9;
+}
+
+/* Scrollbar pour WebKit (Chrome, Safari, Edge) */
+.panier-content::-webkit-scrollbar {
+  width: 6px;              /* largeur fine */
+}
+
+.panier-content::-webkit-scrollbar-track {
+  background: transparent; /* piste invisible */
+}
+
+.panier-content::-webkit-scrollbar-thumb {
+  background-color: rgba(0,0,0,0.25); /* couleur sombre mais translucide */
+  border-radius: 3px;       /* coins arrondis */
+  border: 1px solid transparent; /* espace autour */
+}
+
+/* Scrollbar pour Firefox */
+.panier-content {
+  scrollbar-width: thin;          /* scrollbar fine */
+  scrollbar-color: rgba(0,0,0,0.25) transparent; /* couleur pouce et piste */
+}
+
+.loader-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-size: 1.2rem;
+  font-weight: 600;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  user-select: none;
+}
+
+/* Animation simple pour le loader */
+.loader-dots span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin: 0 4px;
+  background-color: var(--color-primary);
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.loader-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loader-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.loader-dots span:nth-child(3) {
+  animation-delay: 0;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  } 
+  40% {
+    transform: scale(1);
+  }
+}
+

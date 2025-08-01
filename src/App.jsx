@@ -13,17 +13,13 @@ function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [initialRoute, setInitialRoute] = useState(null);
 
-  // Gestion du thème (light/dark)
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'light';
   });
 
+  // Applique le thème en modifiant data-theme (et non plus la classe dark)
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
 
@@ -45,43 +41,10 @@ function App() {
     <Router>
       <Routes>
         <Route path="/auth" element={<Auth />} />
-
-        <Route
-          path="/scan"
-          element={
-            <PrivateRoute>
-              <Scan />
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/profile"
-          element={
-            <PrivateRoute>
-              <Profile theme={theme} setTheme={setTheme} />
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/historique"
-          element={
-            <PrivateRoute>
-              <Historique />
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/panier"
-          element={
-            <PrivateRoute>
-              <Panier />
-            </PrivateRoute>
-          }
-        />
-
+        <Route path="/scan" element={<PrivateRoute><Scan /></PrivateRoute>} />
+        <Route path="/profile" element={<PrivateRoute><Profile theme={theme} setTheme={setTheme} /></PrivateRoute>} />
+        <Route path="/historique" element={<PrivateRoute><Historique /></PrivateRoute>} />
+        <Route path="/panier" element={<PrivateRoute><Panier /></PrivateRoute>} />
         <Route path="*" element={<Navigate to={initialRoute} replace />} />
       </Routes>
     </Router>

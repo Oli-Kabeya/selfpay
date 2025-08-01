@@ -40,22 +40,34 @@ export default function Profile({ theme, setTheme }) {
 
   if (loading) {
     return (
-      <div className="h-screen flex justify-center items-center bg-background transition-colors duration-300">
-        <p className="text-lg text-primary">{t('loading') || 'Chargement...'}</p>
+      <div
+        className="h-screen flex justify-center items-center transition-colors duration-300 page-transition"
+        style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}
+      >
+        <p className="text-lg">{t('loading') || 'Chargement...'}</p>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col justify-start items-center bg-background text-primary transition-all duration-300 page-transition pb-24 px-4 max-w-md mx-auto">
+    <div
+      className="h-screen flex flex-col justify-start items-center transition-all duration-300 page-transition pb-24 px-4 max-w-md mx-auto"
+      style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}
+    >
       <h1 className="text-2xl font-bold mt-8 mb-4">{t('settings')}</h1>
 
-      <div className="bg-card w-full p-4 rounded-2xl shadow-md mb-4">
+      <div
+        className="w-full p-4 rounded-2xl shadow-md mb-4"
+        style={{ backgroundColor: 'var(--color-card)', color: 'var(--color-text)' }}
+      >
         <p className="text-base font-medium">{t('phone')} :</p>
         <p className="text-lg font-semibold mt-1">{phone}</p>
       </div>
 
-      <div className="bg-card w-full p-4 rounded-2xl shadow-md mb-4">
+      <div
+        className="w-full p-4 rounded-2xl shadow-md mb-4"
+        style={{ backgroundColor: 'var(--color-card)', color: 'var(--color-text)' }}
+      >
         <label htmlFor="theme-select" className="block mb-2 font-medium">
           {t('chooseTheme')}
         </label>
@@ -63,14 +75,18 @@ export default function Profile({ theme, setTheme }) {
           id="theme-select"
           value={theme}
           onChange={toggleTheme}
-          className="p-2 border border-gray-300 rounded w-full bg-background text-primary"
+          className="p-2 border border-gray-300 rounded w-full"
+          style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}
         >
           <option value="light">{t('light') || 'Clair'}</option>
           <option value="dark">{t('dark') || 'Sombre'}</option>
         </select>
       </div>
 
-      <div className="bg-card w-full p-4 rounded-2xl shadow-md mb-4">
+      <div
+        className="w-full p-4 rounded-2xl shadow-md mb-4"
+        style={{ backgroundColor: 'var(--color-card)', color: 'var(--color-text)' }}
+      >
         <label htmlFor="lang-select" className="block mb-2 font-medium">
           {t('chooseLanguage')}
         </label>
@@ -78,7 +94,8 @@ export default function Profile({ theme, setTheme }) {
           id="lang-select"
           value={lang}
           onChange={toggleLang}
-          className="p-2 border border-gray-300 rounded w-full bg-background text-primary"
+          className="p-2 border border-gray-300 rounded w-full"
+          style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}
         >
           <option value="fr">Français</option>
           <option value="en">English</option>

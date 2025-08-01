@@ -1,160 +1,106 @@
 import React, { useEffect, useState, useRef } from 'react';
-import './Scan.css';
-import { useNavigate } from 'react-router-dom';
 import { BrowserMultiFormatReader } from '@zxing/browser';
-import { auth } from '../firebase';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import { auth } from '../firebase';
 import FooterNav from '../components/FooterNav';
 import { useTranslation } from 'react-i18next';
 import { X, Barcode } from 'lucide-react';
+import './Scan.css';
 
 export default function Scan() {
   const { t } = useTranslation();
   const [scanning, setScanning] = useState(false);
   const [message, setMessage] = useState('');
-  const [lastScanned, setLastScanned] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [showButtons, setShowButtons] = useState(false);
   const [showFlash, setShowFlash] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [theme, setTheme] = useState('light');
-
   const videoRef = useRef(null);
-  const codeReader = useRef(null);
+  const readerRef = useRef(null);
   const db = getFirestore();
-  const messageTimeoutRef = useRef(null);
-  const flashTimeoutRef = useRef(null);
+
+  useEffect(() => stopCamera, []);
 
   useEffect(() => {
-    // Charger thème depuis localStorage (si non géré globalement)
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    setTheme(savedTheme);
-  }, []);
+    if (scanning) startScan();
+    return () => stopCamera();
+  }, [scanning]);
 
-  useEffect(() => {
-    if (scanning && !showConfirmation) {
-      codeReader.current = new BrowserMultiFormatReader();
-
-      codeReader.current
-        .decodeFromVideoDevice(null, videoRef.current, (result, err) => {
-          if (result && !isProcessing) {
-            const code = result.getText();
-            if (code !== lastScanned) {
-              setLastScanned(code);
-              ajouterProduitAuPanier(code);
-              codeReader.current.reset();
-              setShowConfirmation(true);
-            }
-          }
-          // On ignore les erreurs de scan (no barcode found)
-        })
-        .catch((err) => {
-          console.error('Error starting barcode scanner', err);
-          setScanning(false);
-        });
-
-      return () => {
-        if (codeReader.current) {
-          codeReader.current.reset();
-          codeReader.current = null;
-        }
-      };
-    }
-  }, [scanning, isProcessing, lastScanned, showConfirmation]);
-
-  const ajouterProduitAuPanier = async (codeScanne) => {
-    setIsProcessing(true);
-    const produit = {
-      nom: `${t('product')} ${codeScanne.substring(0, 5)}`,
-      prix: Math.floor(Math.random() * 10) + 1,
-      code: codeScanne,
-    };
-
+  const startScan = async () => {
+    readerRef.current = new BrowserMultiFormatReader();
     try {
-      const panierActuel = JSON.parse(localStorage.getItem('panier')) || [];
-      const nouveauPanier = [...panierActuel, produit];
-      localStorage.setItem('panier', JSON.stringify(nouveauPanier));
-
-      const user = auth.currentUser;
-      if (user) {
-        const panierRef = doc(db, 'paniers', user.uid);
-        const docSnap = await getDoc(panierRef);
-        const anciens = docSnap.exists() ? docSnap.data().articles || [] : [];
-        const nouveauTotal = [...anciens, produit];
-        await setDoc(panierRef, { articles: nouveauTotal });
-      }
-
-      if (navigator.vibrate) navigator.vibrate(100);
-      setShowFlash(true);
-      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
-      flashTimeoutRef.current = setTimeout(() => setShowFlash(false), 300);
-
-      setMessage(`${t('added')}: ${produit.nom}`);
-      if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
-      messageTimeoutRef.current = setTimeout(() => setMessage(''), 2000);
-    } catch (err) {
-      console.error('Erreur ajout produit au panier:', err);
-      setMessage(t('errorAddingProduct'));
-      setTimeout(() => setMessage(''), 3000);
-    } finally {
-      setIsProcessing(false);
+      const result = await readerRef.current.decodeOnceFromVideoDevice(undefined, videoRef.current);
+      ajouterProduit(result.getText());
+    } catch {
+      setMessage(t('scanError'));
+      setTimeout(() => setMessage(''), 2000);
+      handleClose();
     }
   };
 
-  const handleContinue = () => {
-    setShowConfirmation(false);
-    setLastScanned(''); // Permet de rescanner même produit
-    setScanning(true); // Relancer scan
+  const stopCamera = () => {
+    if (readerRef.current) {
+      readerRef.current.reset();
+      readerRef.current = null;
+    }
+    const stream = videoRef.current?.srcObject;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
   };
 
-  const handleCloseCamera = () => {
-    setShowConfirmation(false);
+  const ajouterProduit = async (code) => {
+    const produit = { nom: `${t('product')} ${code.slice(0,5)}`, prix: Math.floor(Math.random()*10)+1, code };
+    const panier = JSON.parse(localStorage.getItem('panier') || '[]');
+    localStorage.setItem('panier', JSON.stringify([...panier, produit]));
+    const user = auth.currentUser;
+    if (user) {
+      const ref = doc(db, 'paniers', user.uid);
+      const snap = await getDoc(ref);
+      const anciens = snap.exists() ? snap.data().articles || [] : [];
+      await setDoc(ref, { articles: [...anciens, produit] });
+    }
+    setShowFlash(true);
+    setTimeout(() => setShowFlash(false), 200);
+    setMessage(`${t('added')}: ${produit.nom}`);
+    setShowButtons(true);
+  };
+
+  const handleScanAgain = () => {
+    stopCamera();
+    setMessage('');
+    setShowButtons(false);
+    setTimeout(() => setScanning(true), 200);
+  };
+
+  const handleClose = () => {
+    stopCamera();
     setScanning(false);
-    setLastScanned('');
+    setShowButtons(false);
+    setMessage('');
   };
 
   return (
     <>
       {showFlash && <div className="flash-screen"></div>}
-
-      <div className={`scan-page page-transition bg-${theme === 'dark' ? 'gray-900' : 'white'} text-${theme === 'dark' ? 'gray-100' : 'gray-900'}`}>
+      <div className="scan-page">
         <h1 className="app-title">SelfPay</h1>
         <p className="scan-subtitle">{t('tapToAddProduct')}</p>
-
         {!scanning ? (
-          <div className="scan-button-container" onClick={() => setScanning(true)} role="button" tabIndex={0} aria-label={t('startScan')}>
-            <div className="scan-button">
-              <Barcode size={40} color="white" />
-            </div>
+          <div className="scan-button-container" onClick={() => setScanning(true)}>
+            <div className="scan-button"><Barcode size={40} color="white" /></div>
           </div>
         ) : (
-          <div className="camera-container" style={{ position: 'relative' }}>
-            <video
-              ref={videoRef}
-              width="300"
-              height="300"
-              style={{ borderRadius: 8, border: '2px solid #ccc' }}
-              muted
-              autoPlay
-              playsInline
-            />
-            <button onClick={handleCloseCamera} className="close-button" aria-label={t('closeCamera')}>
-              <X size={18} /> {t('closeCamera')}
-            </button>
-
-            {showConfirmation && (
-              <div className="confirmationOverlay" role="alertdialog" aria-modal="true" aria-live="assertive">
-                <p>{t('productAdded')}</p>
-                <button onClick={handleContinue} className="focus:outline-none">
-                  {t('continueScanning')}
-                </button>
-                <button onClick={handleCloseCamera} className="focus:outline-none">
-                  {t('finish')}
-                </button>
+          <div className="camera-container">
+            <video ref={videoRef} width="300" height="300" muted autoPlay playsInline />
+            <button onClick={handleClose} className="close-button"><X size={16}/> {t('closeCamera')}</button>
+            {showButtons && (
+              <div className="btn-container">
+                <button onClick={handleScanAgain} className="btn">{t('continueScanning')}</button>
+                <button onClick={handleClose} className="btn finish">{t('finish')}</button>
               </div>
             )}
           </div>
         )}
-
         {message && <p className="message">{message}</p>}
         <FooterNav active="scan" />
       </div>

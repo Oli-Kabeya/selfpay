@@ -1,0 +1,66 @@
+.qr-page {
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 40px;
+  box-sizing: border-box;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.qr-header {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--color-card, #fff);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  margin-bottom: 24px;
+  transition: background-color 0.3s ease;
+}
+
+.qr-total {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 16px;
+  color: var(--color-text);
+}
+
+.qr-date {
+  font-size: 0.9rem;
+  color: var(--color-text);
+  opacity: 0.8;
+  margin-top: 4px;
+}
+
+.qr-button {
+  background-color: #dc2626; /* red-600 */
+  color: white;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: background-color 0.3s ease;
+}
+
+.qr-button:hover {
+  background-color: #b91c1c; /* red-700 */
+}
+
+.qr-used-message {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #dc2626;
+  margin-top: 40px;
+  text-align: center;
+}

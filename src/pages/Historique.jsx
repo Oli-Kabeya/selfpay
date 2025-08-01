@@ -4,6 +4,7 @@ import { auth } from '../firebase';
 import { getFirestore, collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
+import './Historique.css';
 
 export default function Historique() {
   const { t } = useTranslation();
@@ -67,28 +68,47 @@ export default function Historique() {
 
   if (loading) {
     return (
-      <div className="h-screen flex justify-center items-center bg-white dark:bg-[#121212]">
-        <p className="text-lg text-gray-900 dark:text-white">{t('loading')}</p>
+      <div className="h-screen flex flex-col justify-center items-center bg-background text-primary transition-colors duration-300">
+        <div className="loader mb-4"></div>
+        <p className="text-lg font-semibold">{t('loading') || 'Chargement...'}</p>
       </div>
     );
   }
 
   return (
-    <div className="p-4 page-transition pb-20 bg-white dark:bg-[#121212] min-h-screen">
-      <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">{t('purchaseHistory')}</h2>
+    <div className="historique-page">
+      <div className="historique-header">
+        {t('purchaseHistory')}
+      </div>
 
-      {message && <p className="mb-4 text-center text-green-600">{message}</p>}
+      {message && <p className="mb-4 text-center text-green-600 dark:text-green-400">{message}</p>}
 
       {achats.length === 0 ? (
-        <p className="text-gray-700 dark:text-gray-300">{t('noPurchasesYet')}</p>
+        <div className="empty-history">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="empty-icon"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M8 7V3m8 4V3m-9 9h10m-11 4h12m-12 4h12M4 21h16a1 1 0 001-1V7a1 1 0 00-1-1H4a1 1 0 00-1 1v13a1 1 0 001 1z"
+            />
+          </svg>
+          <p className="empty-text">{t('noPurchasesYetMessage')}</p>
+        </div>
       ) : (
-        <ul>
+        <ul className="achats-list">
           {achats.map((achat) => (
-            <li key={achat.id} className="mb-3 border-b border-gray-300 dark:border-gray-700 pb-2">
-              <p className="text-sm text-gray-800 dark:text-gray-200">
+            <li key={achat.id} className="achat-card">
+              <p className="achat-date">
                 {t('date')}: {achat.date ? new Date(achat.date.seconds * 1000).toLocaleString() : t('unknownDate')}
               </p>
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+              <p className="achat-montant">
                 {t('amount')}: {achat.montant} $
               </p>
             </li>
@@ -99,7 +119,7 @@ export default function Historique() {
       {achats.length > 0 && (
         <button
           onClick={supprimerHistorique}
-          className="mt-6 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl w-full shadow"
+          className="w-full p-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold shadow mt-4"
         >
           {t('deleteHistory')}
         </button>

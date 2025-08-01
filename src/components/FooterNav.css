@@ -9,6 +9,7 @@
   z-index: 1000;
   background-color: var(--color-bg);
   color: var(--color-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .nav-item {
@@ -17,7 +18,9 @@
   align-items: center;
   font-size: 12px;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, color 0.3s ease, background-color 0.3s ease;
+  padding: 6px 10px;
+  border-radius: 12px;
 }
 
 .nav-item:hover {
@@ -26,12 +29,17 @@
 
 .nav-item svg {
   margin-bottom: 4px;
+  transition: stroke 0.3s ease;
 }
 
+/* État actif avec couleurs et ombre adaptées au thème */
 .nav-item.active-nav {
-  color: white;
-  background: linear-gradient(135deg, #FF5E3A, #FFBA00);
-  padding: 6px 10px;
-  border-radius: 12px;
-  box-shadow: 0 0 10px rgba(255, 186, 0, 0.6);
+  color: var(--nav-active-color);
+  background: var(--nav-active-gradient);
+  box-shadow: var(--nav-active-shadow);
+}
+
+/* Optionnel : changer la couleur de l’icône SVG quand actif */
+.nav-item.active-nav svg {
+  stroke: var(--nav-active-color);
 }

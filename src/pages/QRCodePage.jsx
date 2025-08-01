@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode.react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import './QRCodePage.css';
 
 const QRCodePage = () => {
   const { t } = useTranslation();
@@ -34,27 +35,26 @@ const QRCodePage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-[#121212] px-4 py-8 page-transition transition-colors duration-300">
-      <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">{t('qrCodeToShow')}</h2>
+    <div className="qr-page">
+      <div className="qr-header">{t('qrCodeToShow')}</div>
 
       {!used ? (
         <>
-          <QRCode value={qrData} size={256} />
-          <p className="mt-4 font-semibold text-gray-900 dark:text-gray-200">
-            {t('amount')}: {total} $
-          </p>
-          <p className="text-gray-700 dark:text-gray-400">
-            {t('date')}: {date}
-          </p>
+          <div className="qr-container">
+            <QRCode value={qrData} size={220} />
+            <p className="qr-total">{t('amount')}: {total} $</p>
+            <p className="qr-date">{t('date')}: {date}</p>
+          </div>
+
           <button
             onClick={marquerCommeUtilise}
-            className="mt-6 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl shadow transition-colors duration-200"
+            className="qr-button"
           >
             {t('markAsUsed')}
           </button>
         </>
       ) : (
-        <p className="text-red-500 font-bold mt-6">{t('qrCodeUsedThanks')}</p>
+        <p className="qr-used-message">{t('qrCodeUsedThanks')}</p>
       )}
     </div>
   );
