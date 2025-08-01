@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 
@@ -8,6 +9,8 @@ export default function Auth() {
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const setupRecaptcha = () => {
     if (!window.recaptchaVerifier) {
@@ -47,7 +50,7 @@ export default function Auth() {
       setLoading(true);
       await confirmationResult.confirm(otp);
       alert('Connexion réussie ✅');
-      window.location.href = '/profile'; // Tu peux remplacer par navigate si tu préfères
+      navigate('/scan');
     } catch (err) {
       setError('Code incorrect. Réessaie.');
       console.error(err);
@@ -57,8 +60,8 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-[#121212] px-4">
-      <h1 className="text-2xl font-bold text-[#F5F5F5] mb-6">Connexion SelfPay</h1>
+    <div className="min-h-screen flex flex-col justify-center items-center bg-white dark:bg-[#121212] px-4 page-transition">
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-[#F5F5F5] mb-8">SelfPay</h1>
 
       <form onSubmit={confirmationResult ? handleVerifyOtp : handleSendCode} className="space-y-4 w-full max-w-sm">
         <input
@@ -66,7 +69,7 @@ export default function Auth() {
           placeholder="+243..."
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          className="w-full p-2 border border-gray-600 rounded bg-[#1E1E1E] text-[#F5F5F5]"
+          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-100 dark:bg-[#1E1E1E] text-gray-900 dark:text-[#F5F5F5]"
           disabled={!!confirmationResult || loading}
           autoFocus={!confirmationResult}
         />
@@ -76,7 +79,7 @@ export default function Auth() {
             placeholder="Code reçu par SMS"
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
-            className="w-full p-2 border border-gray-600 rounded bg-[#1E1E1E] text-[#F5F5F5]"
+            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-100 dark:bg-[#1E1E1E] text-gray-900 dark:text-[#F5F5F5]"
             disabled={loading}
             autoFocus
           />
@@ -86,7 +89,7 @@ export default function Auth() {
 
         <button
           type="submit"
-          className={`w-full p-2 rounded text-white font-semibold bg-gradient-to-r from-[#FF5E3A] to-[#FFBA00] ${
+          className={`w-full p-3 rounded-xl text-white font-semibold bg-gradient-to-r from-[#FF5E3A] to-[#FFBA00] shadow ${
             loading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
           }`}
           disabled={loading}

@@ -4,33 +4,30 @@ html, body {
   height: 100%;
   width: 100%;
   overflow: hidden;
-  background-color: var(--background-color);
-  color: var(--text-color);
+  background-color: var(--color-bg);
+  color: var(--color-text);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Variables CSS par défaut (mode clair) */
-:root {
-  --background-color: #fff;
-  --text-color: #222;
-  --from-text-color: #666;
+/* Variables CSS dynamiques via data-theme */
+:root[data-theme='light'] {
+  --color-bg: #ffffff;
+  --color-text: #222222;
+  --from-text-color: #666666;
   --gradient-start: #ff3c3c;
   --gradient-end: #ffc800;
 }
 
-/* Mode sombre */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background-color: #121212;
-    --text-color: #f5f5f5;
-    --from-text-color: #aaa;
-    --gradient-start: #ff3c3c;
-    --gradient-end: #ffc800;
-  }
+:root[data-theme='dark'] {
+  --color-bg: #121212;
+  --color-text: #f5f5f5;
+  --from-text-color: #aaaaaa;
+  --gradient-start: #ff3c3c;
+  --gradient-end: #ffc800;
 }
 
 .splash-container {
-  background-color: var(--background-color);
+  background-color: var(--color-bg);
   height: 100dvh;
   position: relative;
 }
@@ -45,7 +42,6 @@ html, body {
   margin-bottom: 35%;
 }
 
-/* Centrer le texte en bas, et position plus fluide */
 .text-center {
   position: fixed;
   bottom: 5%;
@@ -75,7 +71,59 @@ html, body {
   user-select: none;
 }
 
-/* Portrait only warning on landscape */
+
+
+/* ... tes styles existants ... */
+
+.slogan-text {
+  position: fixed;
+  top: calc(45% + 110px); /* rapproché de l’image, ajuste si besoin */
+  left: 50%;
+  top:52%;
+  transform: translateX(-50%);
+  font-style: italic;
+  font-weight: 100;
+  text-transform: lowercase;
+  user-select: none;
+  text-align: center;
+  letter-spacing: 0.1em;
+  white-space: nowrap; /* une seule ligne */
+  z-index: 10;
+  color: var(--slogan-color);
+}
+/* Couleurs claires / sombres pour le slogan */
+:root[data-theme='light'] {
+  --slogan-color: #222222; /* gris très foncé */
+}
+
+:root[data-theme='dark'] {
+  --slogan-color: #cccccc; /* gris très clair */
+} 
+
+/* Assure que le gradient Scanera reste lumineux en clair et sombre */
+.scanera-text {
+  margin: 0;
+  background-image: linear-gradient(
+    90deg,
+    #ff3c3c 0%,
+    #ff7a00 40%,
+    #ffc800 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 1rem;
+  user-select: none;
+  filter: drop-shadow(0 0 4px rgba(255, 120, 0, 0.8));
+}
+
+/* ... reste inchangé ... */
+
+
+
+/* Mode paysage : avertissement */
 @media screen and (orientation: landscape) {
   body::before {
     content: "Merci de passer en mode portrait pour utiliser SelfPay.";

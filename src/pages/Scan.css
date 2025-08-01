@@ -6,26 +6,19 @@ body, html {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
 }
 
-/* ===== PAGE PRINCIPALE SCAN ===== */
+/* PAGE SCAN */
 .scan-page {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-bottom: 90px; /* espace pour FooterNav */
-  background-color: #ffffff;
-  color: #000000;
+  padding-bottom: 90px;
+  background-color: var(--color-bg);
+  color: var(--color-text);
 }
 
-@media (prefers-color-scheme: dark) {
-  .scan-page {
-    background-color: #000000;
-    color: #ffffff;
-  }
-}
-
-/* Titre "SelfPay" */
+/* Titre */
 .app-title {
   font-size: 32px;
   font-weight: bold;
@@ -33,21 +26,16 @@ body, html {
   text-align: center;
 }
 
-/* Sous-titre "Touchez pour ajouter un produit" */
+/* Sous-titre */
 .scan-subtitle {
   font-size: 16px;
-  color: #888888;
+  color: var(--color-text);
+  opacity: 0.6;
   text-align: center;
   margin-bottom: 40px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .scan-subtitle {
-    color: #cccccc;
-  }
-}
-
-/* Bouton rond au centre avec icône */
+/* Bouton scan */
 .scan-button-container {
   display: flex;
   justify-content: center;
@@ -100,7 +88,7 @@ body, html {
   text-align: center;
 }
 
-/* Effet flash lors du scan */
+/* Flash scan */
 .flash-screen {
   position: fixed;
   top: 0;
@@ -118,7 +106,7 @@ body, html {
   to { opacity: 0; }
 }
 
-/* Effet entrée douce de la page */
+/* Page animation */
 .page-transition {
   animation: fadeInSlide 0.3s ease-in-out;
 }

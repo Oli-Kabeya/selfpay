@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useTranslation } from 'react-i18next';
+import FooterNav from '../components/FooterNav';
 
 const Paiement = () => {
   const { t } = useTranslation();
@@ -22,7 +23,6 @@ const Paiement = () => {
     }
 
     const transactionId = `TX-${Date.now()}`;
-
     const transaction = {
       uid: user.uid,
       montant: total,
@@ -51,27 +51,35 @@ const Paiement = () => {
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">{t('payment')}</h2>
-      <p className="mb-4">{t('total')}: {total} $</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-[#121212] px-4 pb-20 page-transition">
+      <div className="w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white text-center">{t('payment')}</h2>
+        <p className="mb-6 text-center text-gray-800 dark:text-gray-200">
+          {t('total')}: <span className="font-semibold">{total} $</span>
+        </p>
 
-      <label className="block mb-2 font-semibold">{t('paymentMethod')} :</label>
-      <select
-        value={modePaiement}
-        onChange={(e) => setModePaiement(e.target.value)}
-        className="mb-4 p-2 border rounded"
-      >
-        <option value="selfpay">{t('selfpayPrepaid')}</option>
-      </select>
+        <label className="block mb-2 font-semibold text-gray-800 dark:text-gray-200">
+          {t('paymentMethod')} :
+        </label>
+        <select
+          value={modePaiement}
+          onChange={(e) => setModePaiement(e.target.value)}
+          className="mb-6 p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-100 dark:bg-[#1E1E1E] text-gray-900 dark:text-white w-full"
+        >
+          <option value="selfpay">{t('selfpayPrepaid')}</option>
+        </select>
 
-      <button
-        onClick={validerPaiement}
-        className="bg-blue-600 text-white px-4 py-2 rounded"
-      >
-        {t('payNow')}
-      </button>
+        <button
+          onClick={validerPaiement}
+          className="w-full p-3 rounded-xl text-white font-semibold bg-gradient-to-r from-[#FF5E3A] to-[#FFBA00] shadow hover:opacity-90"
+        >
+          {t('payNow')}
+        </button>
 
-      {message && <p className="mt-2 text-red-500 text-sm">{message}</p>}
+        {message && <p className="mt-4 text-center text-red-500 text-sm">{message}</p>}
+      </div>
+
+      <FooterNav />
     </div>
   );
 };

@@ -1,3 +1,4 @@
+// App.jsx
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import SplashScreen from './components/SplashScreen';
@@ -5,7 +6,7 @@ import Scan from './pages/Scan';
 import Auth from './pages/Auth';
 import Profile from './pages/Profile';
 import Historique from './pages/Historique';
-import Panier from './pages/Panier'; // Importé ici
+import Panier from './pages/Panier';
 import PrivateRoute from './components/PrivateRoute';
 import { auth } from './firebase';
 
@@ -13,13 +14,25 @@ function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [initialRoute, setInitialRoute] = useState(null);
 
+  // Gestion du thème
+  const [theme, setTheme] = useState(() => {
+    // Init theme from localStorage or default to 'light'
+    return localStorage.getItem('theme') || 'light';
+  });
+
+  useEffect(() => {
+    // Applique le thème sur le root HTML
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       auth.onAuthStateChanged((user) => {
         setInitialRoute(user ? '/scan' : '/auth');
         setShowSplash(false);
       });
-    }, 3000); // Splash pendant 3s
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -31,7 +44,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/auth" element={<Auth />} />
-        
+
         <Route
           path="/scan"
           element={
@@ -45,7 +58,7 @@ function App() {
           path="/profile"
           element={
             <PrivateRoute>
-              <Profile />
+              <Profile theme={theme} setTheme={setTheme} />
             </PrivateRoute>
           }
         />
@@ -68,7 +81,6 @@ function App() {
           }
         />
 
-        {/* Redirection vers auth ou scan selon connexion */}
         <Route path="*" element={<Navigate to={initialRoute} replace />} />
       </Routes>
     </Router>

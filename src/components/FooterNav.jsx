@@ -1,4 +1,4 @@
-// src/components/FooterNav.jsx
+// FooterNav.jsx
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, History, Settings, Camera } from 'lucide-react';
@@ -32,7 +32,7 @@ export default function FooterNav() {
         <span>{t('history')}</span>
       </div>
 
-      <div className={getButtonClass('/settings')} onClick={() => navigate('/settings')}>
+      <div className={getButtonClass('/profile')} onClick={() => navigate('/profile')}>
         <Settings size={20} />
         <span>{t('settings')}</span>
       </div>

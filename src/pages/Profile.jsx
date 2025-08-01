@@ -18,11 +18,10 @@ export default function Profile() {
         setPhone(user.phoneNumber);
         setLoading(false);
       } else {
-        navigate('/'); // Rediriger vers Auth si non connecté
+        navigate('/');
       }
     });
 
-    // Charger thème depuis localStorage
     const savedTheme = localStorage.getItem('theme') || 'light';
     setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
@@ -48,43 +47,45 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="h-screen flex justify-center items-center bg-gray-100">
-        <p className="text-lg">{t('loading') || 'Chargement...'}</p>
+      <div className="h-screen flex justify-center items-center bg-background transition-colors duration-300">
+        <p className="text-lg text-primary">{t('loading') || 'Chargement...'}</p>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col justify-center items-center bg-gray-100 page-transition pb-20 px-4 max-w-md mx-auto">
-      <h1 className="text-xl font-bold mb-4">{t('profile')}</h1>
-      <p className="text-lg mb-6">
-        {t('phone')} : {phone}
-      </p>
+    <div className="h-screen flex flex-col justify-start items-center bg-background text-primary transition-all duration-300 page-transition pb-24 px-4 max-w-md mx-auto">
+      <h1 className="text-2xl font-bold mt-8 mb-4">{t('settings')}</h1>
 
-      <div className="mb-6 w-full">
-        <label htmlFor="theme-select" className="block mb-2 font-semibold">
+      <div className="bg-card w-full p-4 rounded-2xl shadow-md mb-4">
+        <p className="text-base font-medium">{t('phone')} :</p>
+        <p className="text-lg font-semibold mt-1">{phone}</p>
+      </div>
+
+      <div className="bg-card w-full p-4 rounded-2xl shadow-md mb-4">
+        <label htmlFor="theme-select" className="block mb-2 font-medium">
           {t('chooseTheme')}
         </label>
         <select
           id="theme-select"
           value={theme}
           onChange={toggleTheme}
-          className="p-2 border rounded w-full"
+          className="p-2 border border-gray-300 rounded w-full bg-background text-primary"
         >
-          <option value="light">Clair</option>
-          <option value="dark">Sombre</option>
+          <option value="light">{t('light') || 'Clair'}</option>
+          <option value="dark">{t('dark') || 'Sombre'}</option>
         </select>
       </div>
 
-      <div className="mb-6 w-full">
-        <label htmlFor="lang-select" className="block mb-2 font-semibold">
+      <div className="bg-card w-full p-4 rounded-2xl shadow-md mb-4">
+        <label htmlFor="lang-select" className="block mb-2 font-medium">
           {t('chooseLanguage')}
         </label>
         <select
           id="lang-select"
           value={lang}
           onChange={toggleLang}
-          className="p-2 border rounded w-full"
+          className="p-2 border border-gray-300 rounded w-full bg-background text-primary"
         >
           <option value="fr">Français</option>
           <option value="en">English</option>
@@ -93,12 +94,13 @@ export default function Profile() {
 
       <button
         onClick={handleLogout}
-        className="mt-6 bg-gray-800 text-white px-4 py-2 rounded w-full"
+        className="mt-4 bg-orange-500 text-white px-6 py-3 rounded-2xl w-full font-bold shadow-lg hover:bg-orange-600 transition-colors duration-200"
       >
         {t('logout')}
       </button>
 
-      <FooterNav />
+      {/* Footer sans bouton central */}
+      <FooterNav noScanButton />
     </div>
   );
 }

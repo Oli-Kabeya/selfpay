@@ -4,3 +4,23 @@
 @tailwind utilities;
 
 /* Tes styles personnalisés en dessous */
+
+/* Thèmes clair et sombre avec variables CSS */
+:root[data-theme='light'] {
+  --color-bg: #f9f9f9;
+  --color-card: #ffffff;
+  --color-text: #111827;
+  --color-primary: #ff6b00; /* orange SelfPay */
+}
+
+:root[data-theme='dark'] {
+  --color-bg: #1f2937;
+  --color-card: #2d3748;
+  --color-text: #f9f9f9;
+  --color-primary: #ff6b00;
+}
+
+/* Optionnel : transition fluide sur changement thème */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
