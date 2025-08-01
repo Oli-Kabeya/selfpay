@@ -18,7 +18,7 @@ const Panier = () => {
   const [message, setMessage] = useState('');
   const [lastScanned, setLastScanned] = useState('');
   const videoRef = useRef(null);
-  const codeReader = useRef(null);
+  const codeReaderRef = useRef(null);
   const db = getFirestore();
 
   useEffect(() => {
@@ -54,32 +54,39 @@ const Panier = () => {
 
   useEffect(() => {
     if (scanning && !showConfirmation) {
-      codeReader.current = new BrowserMultiFormatReader();
-      codeReader.current
-        .decodeFromVideoDevice(null, videoRef.current, (result, err) => {
-          if (result) {
-            const code = result.getText();
-            if (code !== lastScanned) {
-              setLastScanned(code);
-              supprimerProduitParScan(code);
-              codeReader.current.reset();
-              setShowConfirmation(true);
-            }
+      codeReaderRef.current = new BrowserMultiFormatReader();
+      codeReaderRef.current.decodeFromVideoDevice(null, videoRef.current, (result, err) => {
+        if (result) {
+          const code = result.getText();
+          if (code !== lastScanned) {
+            setLastScanned(code);
+            supprimerProduitParScan(code);
+            stopCamera();
+            setShowConfirmation(true);
           }
-        })
-        .catch((err) => {
-          console.error('Erreur caméra:', err);
-          setScanning(false);
-        });
+        }
+      }).catch((err) => {
+        console.error('Erreur caméra:', err);
+        setScanning(false);
+      });
 
       return () => {
-        if (codeReader.current) {
-          codeReader.current.reset();
-          codeReader.current = null;
-        }
+        stopCamera();
       };
     }
   }, [scanning, showConfirmation, lastScanned]);
+
+  const stopCamera = () => {
+    if (codeReaderRef.current && typeof codeReaderRef.current.reset === 'function') {
+      codeReaderRef.current.reset();
+      codeReaderRef.current = null;
+    }
+    const stream = videoRef.current?.srcObject;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+  };
 
   const supprimerProduitParScan = async (codeScanne) => {
     const index = panier.findIndex(item => item.code === codeScanne);
@@ -106,6 +113,7 @@ const Panier = () => {
   };
 
   const handleCloseCamera = () => {
+    stopCamera();
     setScanning(false);
     setShowConfirmation(false);
     setLastScanned('');
@@ -170,25 +178,42 @@ const Panier = () => {
       {message && <p className="mt-4 text-center text-blue-500 text-sm">{message}</p>}
 
       {scanning && (
-        <div className="camera-container">
+        <div className="camera-container flex flex-col items-center relative">
           <video
             ref={videoRef}
             width="300"
             height="300"
-            style={{ borderRadius: 8, border: '2px solid #ccc' }}
+            className="rounded-xl border-2 border-gray-300"
             muted
             autoPlay
             playsInline
           />
-          <button onClick={handleCloseCamera} className="close-button">
-            <X size={18} /> {t('closeCamera')}
-          </button>
+
+          {/* Bouton flottant Close Camera */}
+          {!showConfirmation && (
+            <button
+              onClick={handleCloseCamera}
+              className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-2 shadow z-20 flex items-center gap-2 cursor-pointer hover:bg-red-700 transition"
+            >
+              <X size={16} /> {t('closeCamera')}
+            </button>
+          )}
 
           {showConfirmation && (
-            <div className="confirmationOverlay">
-              <p>{t('productDeletedSuccess')}</p>
-              <button onClick={handleContinueScan}>{t('continueScanning')}</button>
-              <button onClick={handleCloseCamera}>{t('finish')}</button>
+            <div className="overlay-buttons flex flex-col items-center mt-4 gap-3">
+              <p className="text-sm text-center text-blue-500">{t('productDeletedSuccess')}</p>
+              <button
+                onClick={handleContinueScan}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg shadow"
+              >
+                {t('continueScanning')}
+              </button>
+              <button
+                onClick={handleCloseCamera}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg shadow flex items-center gap-2"
+              >
+                <X size={16} /> {t('closeCamera')}
+              </button>
             </div>
           )}
         </div>

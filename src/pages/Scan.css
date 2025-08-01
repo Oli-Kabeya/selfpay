@@ -161,3 +161,93 @@ body, html {
     transform: translateX(0);
   }
 }
+
+.camera-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.camera-button:hover {
+  transform: scale(1.03);
+  opacity: 0.95;
+}
+
+.camera-close {
+  background-color: #ef4444; /* rouge */
+  color: white;
+}
+
+.camera-continue {
+  background-color: #10b981; /* vert */
+  color: white;
+}
+
+.camera-finish {
+  background-color: #6b7280; /* gris foncé */
+  color: white;
+}
+
+.camera-button {
+  background-color: #ff5e3a;
+  color: white;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 0.6rem 1.2rem;
+  box-shadow: 0 4px 8px rgb(255 94 58 / 0.3);
+  transition: background-color 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  border: none;
+}
+
+.camera-button:hover {
+  background-color: #ff4a1a;
+}
+
+.camera-close {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.camera-continue {
+  background-color: #22c55e; /* vert */
+  font-size: 1rem;
+}
+
+.camera-continue:hover {
+  background-color: #16a34a;
+}
+
+.camera-finish {
+  background-color: #ef4444; /* rouge */
+  font-size: 1rem;
+}
+
+.camera-finish:hover {
+  background-color: #b91c1c;
+}
+
+.flash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: white;
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: 9999;
+}
+
