@@ -1,3 +1,4 @@
+// Scan.jsx corrigé
 import React, { useEffect, useState, useRef } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
@@ -18,7 +19,6 @@ export default function Scan() {
   const db = getFirestore();
 
   useEffect(() => {
-    // Nettoyage caméra à la sortie du composant
     return () => {
       stopCamera();
     };
@@ -36,8 +36,10 @@ export default function Scan() {
   const startScan = async () => {
     try {
       codeReaderRef.current = new BrowserMultiFormatReader();
-      const result = await codeReaderRef.current.decodeOnceFromVideoDevice(undefined, videoRef.current);
-      ajouterProduit(result.getText());
+      await codeReaderRef.current.decodeOnceFromVideoDevice(undefined, videoRef.current)
+        .then(result => {
+          ajouterProduit(result.getText());
+        });
     } catch (error) {
       console.error('Erreur scan:', error);
       setMessage(t('scanError'));
@@ -47,12 +49,10 @@ export default function Scan() {
   };
 
   const stopCamera = () => {
-    console.log("Arrêt caméra demandé");
     try {
       if (codeReaderRef.current) {
         codeReaderRef.current.reset();
         codeReaderRef.current = null;
-        console.log("CodeReader reset");
       }
     } catch (e) {
       console.warn("Erreur lors du reset du codeReader", e);
@@ -61,22 +61,23 @@ export default function Scan() {
     const video = videoRef.current;
     if (video && video.srcObject) {
       const stream = video.srcObject;
-      if (stream.getTracks) {
-        stream.getTracks().forEach(track => {
-          try {
-            track.stop();
-          } catch (e) {
-            console.warn("Erreur lors de l'arrêt d'une piste vidéo", e);
-          }
-        });
-      }
+      stream.getTracks().forEach(track => {
+        try {
+          track.stop();
+        } catch (e) {
+          console.warn("Erreur lors de l'arrêt d'une piste vidéo", e);
+        }
+      });
       video.srcObject = null;
-      console.log("Flux vidéo stoppé et détaché");
     }
   };
 
   const ajouterProduit = async (code) => {
-    const produit = { nom: `${t('product')} ${code.slice(0, 5)}`, prix: Math.floor(Math.random() * 10) + 1, code };
+    const produit = {
+      nom: `${t('product')} ${code.slice(0, 5)}`,
+      prix: Math.floor(Math.random() * 10) + 1,
+      code
+    };
     const panier = JSON.parse(localStorage.getItem('panier') || '[]');
     localStorage.setItem('panier', JSON.stringify([...panier, produit]));
 
@@ -91,8 +92,8 @@ export default function Scan() {
     setShowFlash(true);
     setTimeout(() => setShowFlash(false), 200);
     setMessage(`${t('added')}: ${produit.nom}`);
-    setShowButtons(true);
-    setScanning(false); // on arrête le scan pour montrer les boutons
+    setScanning(false); // stop scan
+    setShowButtons(true); // show buttons after scan
   };
 
   const handleScanAgain = () => {
@@ -102,7 +103,6 @@ export default function Scan() {
   };
 
   const handleCloseCamera = () => {
-    console.log("Fermeture caméra demandée");
     stopCamera();
     setScanning(false);
     setShowButtons(false);
@@ -138,22 +138,25 @@ export default function Scan() {
             >
               <X size={16} /> {t('closeCamera')}
             </button>
-            {showButtons && (
-              <div className="absolute bottom-4 flex flex-col gap-2 items-center w-full z-10">
-                <button
-                  onClick={handleScanAgain}
-                  className="camera-button camera-continue w-10/12"
-                >
-                  {t('continueScanning')}
-                </button>
-                <button
-                  onClick={handleCloseCamera}
-                  className="camera-button camera-finish w-10/12"
-                >
-                  {t('finish')}
-                </button>
-              </div>
-            )}
+          </div>
+        )}
+
+        {showButtons && (
+          <div className="absolute bottom-4 flex flex-col gap-3 items-center w-full z-10 px-4">
+            <button
+              onClick={handleScanAgain}
+              className="w-full py-2 rounded-xl text-white font-medium"
+              style={{ backgroundColor: '#007bff' }}
+            >
+              {t('continueScanning')}
+            </button>
+            <button
+              onClick={handleCloseCamera}
+              className="w-full py-2 rounded-xl text-white font-medium"
+              style={{ backgroundColor: '#333' }}
+            >
+              {t('finish')}
+            </button>
           </div>
         )}
 

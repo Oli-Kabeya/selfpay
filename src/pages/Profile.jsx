@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import FooterNav from '../components/FooterNav';
-import useTranslation from '../hooks/useTranslation';
+import { useTranslation } from 'react-i18next';
 
 export default function Profile({ theme, setTheme }) {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(true);
-  const { t, lang, setLang } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,71 +29,59 @@ export default function Profile({ theme, setTheme }) {
     navigate('/');
   };
 
-  const toggleTheme = (e) => {
+  const handleThemeChange = (e) => {
     const newTheme = e.target.value;
     setTheme(newTheme);
   };
 
-  const toggleLang = (e) => {
-    setLang(e.target.value);
+  const handleLanguageChange = (e) => {
+    const lang = e.target.value;
+    i18n.changeLanguage(lang);
+    localStorage.setItem('language', lang);
   };
 
   if (loading) {
     return (
-      <div
-        className="h-screen flex justify-center items-center transition-colors duration-300 page-transition"
-        style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}
-      >
-        <p className="text-lg">{t('loading') || 'Chargement...'}</p>
+      <div className="h-screen flex justify-center items-center page-transition"
+        style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}>
+        <p className="text-lg">{t('loading')}</p>
       </div>
     );
   }
 
   return (
-    <div
-      className="h-screen flex flex-col justify-start items-center transition-all duration-300 page-transition pb-24 px-4 max-w-md mx-auto"
-      style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}
-    >
+    <div className="h-screen flex flex-col justify-start items-center page-transition pb-24 px-4 max-w-md mx-auto"
+      style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}>
       <h1 className="text-2xl font-bold mt-8 mb-4">{t('settings')}</h1>
 
-      <div
-        className="w-full p-4 rounded-2xl shadow-md mb-4"
-        style={{ backgroundColor: 'var(--color-card)', color: 'var(--color-text)' }}
-      >
+      <div className="w-full p-4 rounded-2xl shadow-md mb-4"
+        style={{ backgroundColor: 'var(--color-card)', color: 'var(--color-text)' }}>
         <p className="text-base font-medium">{t('phone')} :</p>
         <p className="text-lg font-semibold mt-1">{phone}</p>
       </div>
 
-      <div
-        className="w-full p-4 rounded-2xl shadow-md mb-4"
-        style={{ backgroundColor: 'var(--color-card)', color: 'var(--color-text)' }}
-      >
-        <label htmlFor="theme-select" className="block mb-2 font-medium">
-          {t('chooseTheme')}
-        </label>
+      <div className="w-full p-4 rounded-2xl shadow-md mb-4"
+        style={{ backgroundColor: 'var(--color-card)', color: 'var(--color-text)' }}>
+        <label htmlFor="theme-select" className="block mb-2 font-medium">{t('chooseTheme')}</label>
         <select
           id="theme-select"
           value={theme}
-          onChange={toggleTheme}
+          onChange={handleThemeChange}
           className="p-2 border border-gray-300 rounded w-full"
           style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}
         >
-          <option value="light">{t('light') || 'Clair'}</option>
-          <option value="dark">{t('dark') || 'Sombre'}</option>
+          <option value="light">{t('light')}</option>
+          <option value="dark">{t('dark')}</option>
         </select>
       </div>
 
-      <div
-        className="w-full p-4 rounded-2xl shadow-md mb-4"
-        style={{ backgroundColor: 'var(--color-card)', color: 'var(--color-text)' }}
-      >
-        <label htmlFor="lang-select" className="block mb-2 font-medium">
-          {t('chooseLanguage')}
-        </label>
+      <div className="w-full p-4 rounded-2xl shadow-md mb-4"
+        style={{ backgroundColor: 'var(--color-card)', color: 'var(--color-text)' }}>
+        <label htmlFor="lang-select" className="block mb-2 font-medium">{t('chooseLanguage')}</label>
         <select
           id="lang-select"
-          value={lang}
-          onChange={toggleLang}
+          value={i18n.language}
+          onChange={handleLanguageChange}
           className="p-2 border border-gray-300 rounded w-full"
           style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}
         >

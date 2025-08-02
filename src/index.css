@@ -1,17 +1,19 @@
-@import 'tailwindcss'; /* toujours en premier */
+/* index.css ou fichier global CSS */
+
+/* Import Tailwind */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Thèmes clair et sombre avec variables CSS */
+/* Variables CSS thématiques */
+
 :root[data-theme='light'] {
   --color-bg: #f9f9f9;
   --color-card: #ffffff;
   --color-text: #111827;
   --color-primary: #ff6b00;
 
-  /* FooterNav actif */
-  --nav-active-color: white;
+  --nav-active-color: #FF5E3A;
   --nav-active-gradient: linear-gradient(135deg, #FF5E3A, #FFBA00);
   --nav-active-shadow: 0 0 10px rgba(255, 186, 0, 0.6);
 }
@@ -22,14 +24,38 @@
   --color-text: #f9f9f9;
   --color-primary: #ff6b00;
 
-  --nav-active-color: white;
+  --nav-active-color: #FF5E3A;
   --nav-active-gradient: linear-gradient(135deg, #FF5E3A, #FFBA00);
   --nav-active-shadow: 0 0 10px rgba(255, 186, 0, 0.9);
 }
 
-/* Transition fluide pour les changements de thème */
+/* Transitions fluides globales */
 html {
   transition: background-color 0.3s ease, color 0.3s ease;
   background-color: var(--color-bg);
   color: var(--color-text);
+}
+
+/* Par sécurité, appliquer box-sizing global */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Reset marges/paddings globaux */
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* Supprime outline sur focus sauf pour clavier */
+:focus:not(:focus-visible) {
+  outline: none;
 }

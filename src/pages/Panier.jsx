@@ -178,41 +178,42 @@ const Panier = () => {
       {message && <p className="mt-4 text-center text-blue-500 text-sm">{message}</p>}
 
       {scanning && (
-        <div className="camera-container flex flex-col items-center relative">
+        <div className="camera-container flex flex-col items-center justify-center relative mt-4">
           <video
             ref={videoRef}
-            width="300"
-            height="300"
-            className="rounded-xl border-2 border-gray-300"
+            width="320"
+            height="320"
+            className="rounded-2xl border-2 border-gray-300 shadow-lg"
             muted
             autoPlay
             playsInline
           />
 
-          {/* Bouton flottant Close Camera */}
           {!showConfirmation && (
             <button
               onClick={handleCloseCamera}
-              className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-2 shadow z-20 flex items-center gap-2 cursor-pointer hover:bg-red-700 transition"
+              className="absolute top-2 right-2 bg-[#333] text-white rounded-full p-2 shadow z-20 flex items-center gap-2 hover:bg-black transition"
             >
               <X size={16} /> {t('closeCamera')}
             </button>
           )}
 
           {showConfirmation && (
-            <div className="overlay-buttons flex flex-col items-center mt-4 gap-3">
+            <div className="overlay-buttons flex flex-col items-center mt-4 gap-3 w-full px-4">
               <p className="text-sm text-center text-blue-500">{t('productDeletedSuccess')}</p>
               <button
                 onClick={handleContinueScan}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg shadow"
+                className="w-full py-2 rounded-xl text-white font-medium"
+                style={{ backgroundColor: '#007bff' }}
               >
                 {t('continueScanning')}
               </button>
               <button
                 onClick={handleCloseCamera}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg shadow flex items-center gap-2"
+                className="w-full py-2 rounded-xl text-white font-medium"
+                style={{ backgroundColor: '#333' }}
               >
-                <X size={16} /> {t('closeCamera')}
+                {t('closeCamera')}
               </button>
             </div>
           )}
