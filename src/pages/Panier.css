@@ -1,276 +1,223 @@
+/* Panier principal */
 .panier-page {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
+  padding-bottom: 5rem; /* pour laisser place au footer */
+  max-width: 100%;
+  width: 100%;
+  max-width: 400px;
+  margin: auto;
   background-color: var(--color-bg);
   color: var(--color-text);
-  padding: 0 16px 80px; /* padding horizontal conservé */
-  box-sizing: border-box;
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.panier-total {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background-color: transparent; /* transparent pour ne pas créer de "boîte" visible */
-  color: var(--color-text);
+/* Total général panier */
+.panier-page .panier-total {
+  font-weight: 700;
   font-size: 1.25rem;
-  font-weight: 600;
-  padding: 16px 0; /* padding horizontal supprimé ici */
+  margin-bottom: 1rem;
   text-align: center;
-  left: 16px; /* égal au padding horizontal du parent */
-  right: 16px; /* égal au padding horizontal du parent */
-  margin: 0 auto;
-  box-sizing: border-box;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* bordure discrète en bas */
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-
-.panier-content {
-  flex-grow: 1; /* occupe tout l’espace restant */
+/* Liste des produits */
+.panier-page .panier-content {
+  max-height: 60vh;
   overflow-y: auto;
-  padding-top: 12px;
-  margin-bottom: 16px; /* espace sous contenu scrollable */
+  padding: 0 1rem;
 }
 
-.product-list {
+.panier-page .product-list {
   list-style: none;
   padding: 0;
-  max-width: 480px;
-  margin: 0 auto 24px auto;
+  margin: 0 0 1rem 0;
 }
 
-.product-card {
-  background-color: var(--color-card, #fff);
-  color: var(--color-text, #111);
-  border-radius: 10px;
-  padding: 14px 20px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+.panier-page .product-card {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  font-weight: 500;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.product-card:hover {
-  background-color: var(--color-primary, #ff6b00);
-  color: white;
-  cursor: default;
-}
-
-.product-name {
+  background-color: var(--color-card);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  font-weight: 600;
   font-size: 1rem;
-  max-width: 70%;
-  word-break: break-word;
 }
 
-.product-price {
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.empty-cart {
+/* Panier vide */
+.panier-page .empty-cart {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-top: 80px;
-  color: var(--color-text, #111);
-  max-width: 320px;
-  margin-left: auto;
-  margin-right: auto;
-  user-select: none;
+  height: 50vh;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.panier-page .empty-icon {
+  width: 60px;
+  height: 60px;
+  margin-bottom: 8px;
+  stroke: var(--nav-active-color);
+}
+
+.panier-page .empty-text {
+  font-size: 1.1rem;
+}
+
+/* Boutons spécifiques Panier */
+.panier-page button {
+  cursor: pointer;
+  border: none;
+  font-weight: 600;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+/* Bouton Valider */
+.panier-page button.validate-btn {
+  background: linear-gradient(135deg, #FFBA00, #FF5E3A);
+  color: white;
+  padding: 14px 0;
+  box-shadow: 0 4px 8px rgb(255 122 0 / 0.5);
+  font-size: 1.1rem;
+}
+
+.panier-page button.validate-btn:hover {
+  opacity: 0.9;
+  box-shadow: 0 6px 12px rgb(255 122 0 / 0.7);
+}
+
+/* Bouton Scanner */
+.panier-page button.scan-btn {
+  background-color: var(--color-primary);
+  color: white;
+  padding: 14px 0;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 8px rgb(0 123 255 / 0.5);
+}
+
+.panier-page button.scan-btn:hover {
+  opacity: 0.9;
+  box-shadow: 0 6px 12px rgb(0 123 255 / 0.7);
+}
+
+/* Message info */
+.panier-page .message-info {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--nav-active-color);
   text-align: center;
 }
 
-.empty-icon {
-  width: 72px;
-  height: 72px;
-  margin-bottom: 20px;
-  color: var(--color-primary, #ff6b00);
-  opacity: 0.7;
+/* Caméra */
+.panier-page .camera-container {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
 }
 
-.empty-text {
-  font-size: 1.2rem;
+.panier-page .camera-container video {
+  border-radius: 20px;
+  border: 3px solid var(--nav-active-color);
+  box-shadow: 0 0 15px var(--nav-active-color);
+}
+
+/* Bouton Fermer caméra */
+.panier-page .camera-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: var(--nav-active-color);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 20px;
   font-weight: 600;
-  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  box-shadow: 0 3px 8px rgb(255 122 0 / 0.7);
+  border: none;
 }
 
-/* Boutons scrollables */
-.bouton-panier {
+.panier-page .camera-close-btn:hover {
+  background-color: #ff7a00;
+}
+
+/* Boutons de l'overlay caméra */
+.panier-page .overlay-buttons {
+  margin-top: 12px;
   width: 100%;
-  max-width: 480px;
-  margin: 12px auto 40px auto; /* marge bottom pour espace FooterNav */
-  padding: 14px 0;
-  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panier-page .overlay-buttons button {
+  border-radius: 20px;
+  padding: 12px;
   font-weight: 600;
   color: white;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Bouton Continuer */
+.panier-page .overlay-buttons .continue-btn {
+  background-color: var(--color-primary);
+  box-shadow: 0 4px 8px rgb(0 123 255 / 0.6);
   transition: background-color 0.3s ease;
-  cursor: pointer;
-  display: block;
-  text-align: center;
 }
 
-.bouton-valider {
-  background: linear-gradient(to right, #FF5E3A, #FFBA00);
+.panier-page .overlay-buttons .continue-btn:hover {
+  background-color: #0056b3;
 }
 
-.bouton-valider:hover {
-  opacity: 0.9;
+/* Bouton Fermer */
+.panier-page .overlay-buttons .close-btn {
+  background-color: var(--nav-active-color);
+  box-shadow: 0 4px 8px rgb(255 122 0 / 0.6);
+  transition: background-color 0.3s ease;
 }
 
-.bouton-ajouter {
-  background-color: #2563eb;
+.panier-page .overlay-buttons .close-btn:hover {
+  background-color: #ff7a00;
 }
 
-.bouton-ajouter:hover {
-  opacity: 0.9;
-}
-
-/* Scrollbar pour WebKit (Chrome, Safari, Edge) */
-.panier-content::-webkit-scrollbar {
-  width: 6px;              /* largeur fine */
-}
-
-.panier-content::-webkit-scrollbar-track {
-  background: transparent; /* piste invisible */
-}
-
-.panier-content::-webkit-scrollbar-thumb {
-  background-color: rgba(0,0,0,0.25); /* couleur sombre mais translucide */
-  border-radius: 3px;       /* coins arrondis */
-  border: 1px solid transparent; /* espace autour */
-}
-
-/* Scrollbar pour Firefox */
-.panier-content {
-  scrollbar-width: thin;          /* scrollbar fine */
-  scrollbar-color: rgba(0,0,0,0.25) transparent; /* couleur pouce et piste */
-}
-
-.loader-container {
-  height: 100vh;
+/* Loader animé */
+.panier-page .loader-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: var(--color-bg);
+  height: 60vh;
   color: var(--color-text);
-  font-size: 1.2rem;
-  font-weight: 600;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  user-select: none;
+  font-size: 1.25rem;
 }
 
-/* Animation simple pour le loader */
-.loader-dots span {
+.panier-page .loader-dots span {
   display: inline-block;
   width: 8px;
   height: 8px;
   margin: 0 4px;
-  background-color: var(--color-primary);
+  background-color: var(--nav-active-color);
   border-radius: 50%;
-  animation: bounce 1.4s infinite ease-in-out both;
+  animation: blink 1.4s infinite both;
 }
 
-.loader-dots span:nth-child(1) {
-  animation-delay: -0.32s;
+.panier-page .loader-dots span:nth-child(2) {
+  animation-delay: 0.2s;
 }
 
-.loader-dots span:nth-child(2) {
-  animation-delay: -0.16s;
+.panier-page .loader-dots span:nth-child(3) {
+  animation-delay: 0.4s;
 }
 
-.loader-dots span:nth-child(3) {
-  animation-delay: 0;
-}
-
-@keyframes bounce {
+@keyframes blink {
   0%, 80%, 100% {
-    transform: scale(0);
-  } 
+    opacity: 0;
+  }
   40% {
-    transform: scale(1);
+    opacity: 1;
   }
 }
-
-.camera-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px 16px;
-  border-radius: 30px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.camera-button:hover {
-  transform: scale(1.03);
-  opacity: 0.95;
-}
-
-.camera-close {
-  background-color: #ef4444; /* rouge */
-  color: white;
-}
-
-.camera-continue {
-  background-color: #10b981; /* vert */
-  color: white;
-}
-
-.camera-finish {
-  background-color: #6b7280; /* gris foncé */
-  color: white;
-}
-
-
-.camera-container video {
-  border-radius: 12px;
-  border: 3px solid #FF5E3A;
-  object-fit: cover;
-}
-
-.overlay-buttons button {
-  cursor: pointer;
-  transition: background-color 0.25s ease;
-}
-
-.overlay-buttons button:hover {
-  opacity: 0.85;
-}
-
-.camera-container {
-  position: relative;
-}
-
-.camera-container button.absolute {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 20;
-  background-color: #FF5E3A;
-  border-radius: 50%;
-  padding: 6px 10px;
-  color: white;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  transition: background-color 0.3s ease;
-}
-
-.camera-container button.absolute:hover {
-  background-color: #e6502e;
-}
-

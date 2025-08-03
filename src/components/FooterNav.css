@@ -48,3 +48,59 @@
 .nav-item.active-nav svg {
   stroke: var(--nav-active-color);
 }*/
+
+nav[role="navigation"] {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  max-width: 100%;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  border-top: 1px solid var(--color-border, #ccc);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0.5rem 0;
+  z-index: 50;
+  user-select: none;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.1);
+}
+
+nav[role="navigation"] > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.75rem;
+  transition: transform 0.2s ease, color 0.3s ease;
+  outline-offset: 2px;
+}
+
+nav[role="navigation"] > div:hover,
+nav[role="navigation"] > div:focus-visible {
+  transform: scale(1.05);
+  color: var(--color-primary, #ff6b00);
+}
+
+nav[role="navigation"] > div[aria-current="page"] {
+  color: var(--color-primary, #ff6b00);
+  text-shadow: 0 0 6px rgba(255, 107, 0, 0.8);
+  filter: drop-shadow(0 0 4px rgba(255, 136, 0, 0.8));
+}
+
+nav[role="navigation"] svg {
+  margin-bottom: 0.15rem;
+  stroke-width: 1.5;
+  transition: stroke 0.3s ease, filter 0.3s ease;
+  stroke: var(--color-text);
+}
+
+nav[role="navigation"] > div[aria-current="page"] svg {
+  stroke: var(--color-primary, #ff6b00);
+  filter: drop-shadow(0 0 4px rgba(255, 136, 0, 0.8));
+}
+

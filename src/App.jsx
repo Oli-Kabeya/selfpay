@@ -15,12 +15,16 @@ import { auth } from './firebase';
 import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n';
 
-import FixedTriangles from './components/FixedTriangles'; // Triangle flottant
+import FixedTriangles from './components/FixedTriangles';
+import ListeOverlay from './components/ListeOverlay';
+
+import { FooterVisibilityProvider } from './context/FooterVisibilityContext';
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [initialRoute, setInitialRoute] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+  const [showListeOverlay, setShowListeOverlay] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -44,40 +48,59 @@ export default function App() {
   return (
     <I18nextProvider i18n={i18n}>
       <Router>
-        <AppContent initialRoute={initialRoute} theme={theme} setTheme={setTheme} />
+        <FooterVisibilityProvider>
+          <AppContent
+            initialRoute={initialRoute}
+            theme={theme}
+            setTheme={setTheme}
+            showListeOverlay={showListeOverlay}
+            setShowListeOverlay={setShowListeOverlay}
+          />
+        </FooterVisibilityProvider>
       </Router>
     </I18nextProvider>
   );
 }
 
-// Ce composant est sous <Router> donc ici, on peut utiliser useNavigate
-function AppContent({ initialRoute, theme, setTheme }) {
+function AppContent({ initialRoute, theme, setTheme, showListeOverlay, setShowListeOverlay }) {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
 
+  const handleToggleListeOverlay = () => {
+    setShowListeOverlay((prev) => !prev);
+  };
+
   return (
     <>
-      {/* Triangles fixes */}
+      {/* Boutons flottants fixes à droite */}
       <FixedTriangles
         onSettingsClick={() => navigate('/profile')}
-        onListClick={() => navigate('/liste')}
+        onListClick={handleToggleListeOverlay}
         showList={currentPath === '/scan' || currentPath === '/panier'}
+        showOverlay={showListeOverlay}  // <-- bien passer la prop ici
       />
 
-      {/* Routes principales */}
-      <Routes>
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/scan" element={<PrivateRoute><Scan /></PrivateRoute>} />
-        <Route path="/historique" element={<PrivateRoute><Historique /></PrivateRoute>} />
-        <Route path="/panier" element={<PrivateRoute><Panier /></PrivateRoute>} />
-        <Route path="/profile" element={<PrivateRoute><Profile theme={theme} setTheme={setTheme} /></PrivateRoute>} />
-        <Route path="/liste" element={<PrivateRoute><Liste /></PrivateRoute>} />
-        <Route path="*" element={<Navigate to={initialRoute} replace />} />
-      </Routes>
+      {/* Pages centrées dans un conteneur limité */}
+      <div className="relative max-w-md mx-auto min-h-screen">
+        <Routes>
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/scan" element={<PrivateRoute><Scan showListeOverlay={showListeOverlay} setShowListeOverlay={setShowListeOverlay} /></PrivateRoute>} />
+          <Route path="/historique" element={<PrivateRoute><Historique /></PrivateRoute>} />
+          <Route path="/panier" element={<PrivateRoute><Panier showListeOverlay={showListeOverlay} setShowListeOverlay={setShowListeOverlay} /></PrivateRoute>} />
+          <Route path="/profile" element={<PrivateRoute><Profile theme={theme} setTheme={setTheme} /></PrivateRoute>} />
+          <Route path="/liste" element={<PrivateRoute><Liste /></PrivateRoute>} />
+          <Route path="*" element={<Navigate to={initialRoute} replace />} />
+        </Routes>
+      </div>
 
-      {/* Footer sauf sur la page Auth */}
-      {currentPath !== '/auth' && <FooterNav />}
+      {/* Footer visible sauf sur Auth */}
+      {!currentPath.startsWith('/auth') && <FooterNav />}
+
+      {/* Overlay Liste de courses totalement flottant */}
+      {showListeOverlay && (
+        <ListeOverlay onClose={() => setShowListeOverlay(false)} />
+      )}
     </>
   );
 }

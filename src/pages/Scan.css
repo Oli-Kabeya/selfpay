@@ -1,25 +1,20 @@
-/* Reset de base */
-body, html {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
-}
-
-/* PAGE SCAN */
 .scan-page {
   min-height: 100vh;
+  width: 100vw; /* Évite espace horizontal */
+  overflow: hidden; /* Pas de débordement caméra/overlay */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-bottom: 90px;
+  padding-bottom: 90px; /* Laisse place au FooterNav */
   background-color: var(--color-bg);
   color: var(--color-text);
+  position: relative;
+  box-sizing: border-box;
 }
 
 /* Titre */
-.app-title {
+.scan-page .app-title {
   font-size: 32px;
   font-weight: bold;
   margin-bottom: 10px;
@@ -27,7 +22,7 @@ body, html {
 }
 
 /* Sous-titre */
-.scan-subtitle {
+.scan-page .scan-subtitle {
   font-size: 16px;
   color: var(--color-text);
   opacity: 0.6;
@@ -35,14 +30,15 @@ body, html {
   margin-bottom: 40px;
 }
 
-/* Bouton scan */
-.scan-button-container {
+/* Bouton Scan central */
+.scan-page .scan-button-container {
   display: flex;
   justify-content: center;
   align-items: center;
+  cursor: pointer;
 }
 
-.scan-button {
+.scan-page .scan-button {
   width: 120px;
   height: 120px;
   border-radius: 60px;
@@ -51,118 +47,36 @@ body, html {
   justify-content: center;
   align-items: center;
   box-shadow: 0 4px 12px rgba(255, 94, 58, 0.5);
-  cursor: pointer;
   transition: transform 0.2s ease;
 }
 
-.scan-button:hover {
+.scan-page .scan-button:hover,
+.scan-page .scan-button-container:focus-visible {
   transform: scale(1.05);
+  outline: none;
 }
 
-/* Caméra + bouton fermer */
-.camera-container {
+/* Caméra */
+.scan-page .camera-container {
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
+  width: 300px;
+  height: 300px;
 }
 
-.close-button {
-  margin-top: 10px;
-  padding: 8px 12px;
-  background: #FF5E3A;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-/* Message "Ajouté" */
-.message {
-  margin-top: 15px;
-  font-size: 14px;
-  color: #28a745;
-  text-align: center;
-}
-
-/* Flash scan */
-.flash-screen {
-  position: fixed;
-  top: 0;
-  left: 0;
+.scan-page .camera-video {
+  border-radius: 20px;
+  border: 2px solid var(--color-text);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   width: 100%;
   height: 100%;
-  background: white;
-  opacity: 0.6;
-  z-index: 1000;
-  animation: flashFadeOut 0.3s ease-out forwards;
+  object-fit: cover;
 }
 
-@keyframes flashFadeOut {
-  from { opacity: 0.6; }
-  to { opacity: 0; }
-}
-
-
-.confirmationOverlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 300px; /* même taille que la vidéo */
-  height: 300px;
-  background-color: rgba(0,0,0,0.7);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  z-index: 1000;
-}
-.confirmationOverlay p {
-  margin-bottom: 20px;
-  font-size: 18px;
-  font-weight: bold;
-}
-.confirmationOverlay button {
-  margin: 8px 0;
-  padding: 10px 16px;
-  font-size: 16px;
-  width: 80%;
-  cursor: pointer;
-  border: none;
-  border-radius: 5px;
-}
-.confirmationOverlay button:first-of-type {
-  background-color: #28a745; /* vert */
-  color: white;
-}
-.confirmationOverlay button:last-of-type {
-  background-color: #dc3545; /* rouge */
-  color: white;
-}
-
-
-/* Page animation */
-.page-transition {
-  animation: fadeInSlide 0.3s ease-in-out;
-}
-
-@keyframes fadeInSlide {
-  0% {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.camera-button {
+/* Boutons caméra */
+.scan-page .camera-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -173,72 +87,87 @@ body, html {
   font-size: 0.9rem;
   box-shadow: 0 4px 8px rgba(0,0,0,0.15);
   transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.camera-button:hover {
-  transform: scale(1.03);
-  opacity: 0.95;
-}
-
-.camera-close {
-  background-color: #ef4444; /* rouge */
-  color: white;
-}
-
-.camera-continue {
-  background-color: #10b981; /* vert */
-  color: white;
-}
-
-.camera-finish {
-  background-color: #6b7280; /* gris foncé */
-  color: white;
-}
-
-.camera-button {
-  background-color: #ff5e3a;
-  color: white;
-  font-weight: 600;
-  border-radius: 12px;
-  padding: 0.6rem 1.2rem;
-  box-shadow: 0 4px 8px rgb(255 94 58 / 0.3);
-  transition: background-color 0.25s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
   cursor: pointer;
   user-select: none;
   border: none;
 }
 
-.camera-button:hover {
-  background-color: #ff4a1a;
+.scan-page .camera-button:hover,
+.scan-page .camera-button:focus-visible {
+  transform: scale(1.03);
+  opacity: 0.95;
+  outline: none;
 }
 
-.camera-close {
+/* Bouton fermer caméra */
+.scan-page .camera-close {
+  background-color: #ef4444;
+  color: white;
   font-size: 0.85rem;
   padding: 0.4rem 0.8rem;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
 }
 
-.camera-continue {
-  background-color: #22c55e; /* vert */
+/* Conteneur boutons "Continuer" et "Terminer" */
+.scan-buttons-container {
+  position: absolute;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 90%;
+  max-width: 320px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+}
+
+/* Bouton Continuer */
+.scan-page .camera-continue {
+  background-color: #22c55e;
   font-size: 1rem;
+  color: white;
+  padding: 12px 0;
+  border-radius: 12px;
+  border: none;
 }
 
-.camera-continue:hover {
+.scan-page .camera-continue:hover,
+.scan-page .camera-continue:focus-visible {
   background-color: #16a34a;
+  outline: none;
 }
 
-.camera-finish {
-  background-color: #ef4444; /* rouge */
+/* Bouton Terminer */
+.scan-page .camera-finish {
+  background-color: #ef4444;
   font-size: 1rem;
+  color: white;
+  padding: 12px 0;
+  border-radius: 12px;
+  border: none;
 }
 
-.camera-finish:hover {
+.scan-page .camera-finish:hover,
+.scan-page .camera-finish:focus-visible {
   background-color: #b91c1c;
+  outline: none;
 }
 
+/* Message "Ajouté" */
+.scan-page .message {
+  margin-top: 15px;
+  font-size: 14px;
+  color: #28a745;
+  text-align: center;
+  z-index: 15;
+  position: relative;
+}
+
+/* Écran flash blanc */
 .flash-screen {
   position: fixed;
   top: 0;
@@ -250,4 +179,3 @@ body, html {
   pointer-events: none;
   z-index: 9999;
 }
-

@@ -85,7 +85,6 @@ const Paiement = () => {
         {message && <p className="mt-4 text-center text-red-500 text-sm">{message}</p>}
       </div>
 
-      <FooterNav />
     </div>
   );
 };

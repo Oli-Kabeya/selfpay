@@ -59,3 +59,52 @@ body, html {
 :focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Boutons triangles flottants */
+.triangle-btn {
+  padding: 0.6rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  background: linear-gradient(to bottom right, #FFD700, #FF8C00, #FF4500);
+  color: white;
+  transition: transform 0.2s ease, filter 0.2s ease;
+  filter: drop-shadow(0 0 6px rgba(255,136,0,0.6));
+}
+
+.triangle-btn:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 8px rgba(255,136,0,0.8));
+}
+
+/* Container boutons flottants fixes à droite, centrés verticalement */
+.fixed-triangles-container {
+  position: fixed;
+  top: 50%;
+  right: 1rem;  /* espace à droite */
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* espace vertical entre boutons */
+  z-index: 1000; /* devant tout */
+}
+
+/* 
+  Suppression des animations conflictuelles slide-in/slide-out.
+  Gestion du slide uniquement via transition transform CSS.
+*/
+
+/* Z-index liste overlay */
+.liste-overlay {
+  z-index: 999 !important;
+}
+
+/* Transition pour slide droite-gauche de l'overlay */
+.translate-x-full {
+  transform: translateX(100%);
+  transition: transform 0.3s ease-in-out;
+}
+
+.translate-x-0 {
+  transform: translateX(0%);
+  transition: transform 0.3s ease-in-out;
+}

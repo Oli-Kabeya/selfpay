@@ -1,14 +1,14 @@
-// Scan.jsx corrigé
 import React, { useEffect, useState, useRef } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth } from '../firebase';
 import FooterNav from '../components/FooterNav';
+import ListeOverlay from '../components/ListeOverlay';
 import { useTranslation } from 'react-i18next';
 import { X, Barcode } from 'lucide-react';
 import './Scan.css';
 
-export default function Scan() {
+export default function Scan({ showListeOverlay, setShowListeOverlay }) {
   const { t } = useTranslation();
   const [scanning, setScanning] = useState(false);
   const [message, setMessage] = useState('');
@@ -18,18 +18,15 @@ export default function Scan() {
   const codeReaderRef = useRef(null);
   const db = getFirestore();
 
+  // Nettoyage caméra au démontage
   useEffect(() => {
-    return () => {
-      stopCamera();
-    };
+    return () => stopCamera();
   }, []);
 
+  // Démarrer ou arrêter le scan selon l'état
   useEffect(() => {
-    if (scanning) {
-      startScan();
-    } else {
-      stopCamera();
-    }
+    if (scanning) startScan();
+    else stopCamera();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanning]);
 
@@ -49,26 +46,17 @@ export default function Scan() {
   };
 
   const stopCamera = () => {
-    try {
-      if (codeReaderRef.current) {
+    if (codeReaderRef.current) {
+      try {
         codeReaderRef.current.reset();
-        codeReaderRef.current = null;
-      }
-    } catch (e) {
-      console.warn("Erreur lors du reset du codeReader", e);
+      } catch {}
+      codeReaderRef.current = null;
     }
-
-    const video = videoRef.current;
-    if (video && video.srcObject) {
-      const stream = video.srcObject;
-      stream.getTracks().forEach(track => {
-        try {
-          track.stop();
-        } catch (e) {
-          console.warn("Erreur lors de l'arrêt d'une piste vidéo", e);
-        }
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => {
+        try { track.stop(); } catch {}
       });
-      video.srcObject = null;
+      videoRef.current.srcObject = null;
     }
   };
 
@@ -92,8 +80,8 @@ export default function Scan() {
     setShowFlash(true);
     setTimeout(() => setShowFlash(false), 200);
     setMessage(`${t('added')}: ${produit.nom}`);
-    setScanning(false); // stop scan
-    setShowButtons(true); // show buttons after scan
+    setScanning(false);
+    setShowButtons(true);
   };
 
   const handleScanAgain = () => {
@@ -111,17 +99,26 @@ export default function Scan() {
 
   return (
     <>
-      {showFlash && <div className="flash-screen"></div>}
-      <div className="scan-page">
+      {showFlash && <div className="flash-screen" />}
+      <div className="scan-page" role="main" aria-label={t('scanPage')}>
         <h1 className="app-title">SelfPay</h1>
         <p className="scan-subtitle">{t('tapToAddProduct')}</p>
 
         {!scanning ? (
-          <div className="scan-button-container" onClick={() => setScanning(true)}>
-            <div className="scan-button"><Barcode size={40} color="white" /></div>
+          <div
+            className="scan-button-container"
+            onClick={() => setScanning(true)}
+            role="button"
+            tabIndex={0}
+            aria-label={t('startScan')}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setScanning(true); }}
+          >
+            <div className="scan-button" aria-hidden="true">
+              <Barcode size={40} color="white" />
+            </div>
           </div>
         ) : (
-          <div className="camera-container relative">
+          <div className="camera-container" aria-live="polite" aria-label={t('cameraActive')}>
             <video
               ref={videoRef}
               width="300"
@@ -133,35 +130,37 @@ export default function Scan() {
             />
             <button
               onClick={handleCloseCamera}
-              className="absolute top-2 right-2 camera-button camera-close z-10"
-              aria-label="Close camera"
+              className="camera-button camera-close"
+              aria-label={t('closeCamera')}
             >
-              <X size={16} /> {t('closeCamera')}
+              <X size={16} aria-hidden="true" /> {t('closeCamera')}
             </button>
           </div>
         )}
 
         {showButtons && (
-          <div className="absolute bottom-4 flex flex-col gap-3 items-center w-full z-10 px-4">
+          <div className="scan-buttons-container">
             <button
               onClick={handleScanAgain}
-              className="w-full py-2 rounded-xl text-white font-medium"
-              style={{ backgroundColor: '#007bff' }}
+              className="camera-continue"
+              aria-label={t('continueScanning')}
             >
               {t('continueScanning')}
             </button>
             <button
               onClick={handleCloseCamera}
-              className="w-full py-2 rounded-xl text-white font-medium"
-              style={{ backgroundColor: '#333' }}
+              className="camera-finish"
+              aria-label={t('finish')}
             >
               {t('finish')}
             </button>
           </div>
         )}
 
-        {message && <p className="message">{message}</p>}
-        <FooterNav active="scan" />
+        {message && <p className="message" role="alert">{message}</p>}
+
+        {showListeOverlay && <ListeOverlay onClose={() => setShowListeOverlay(false)} />}
+        
       </div>
     </>
   );

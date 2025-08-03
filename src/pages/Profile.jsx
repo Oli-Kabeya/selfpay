@@ -97,7 +97,6 @@ export default function Profile({ theme, setTheme }) {
         {t('logout')}
       </button>
 
-      <FooterNav noScanButton />
     </div>
   );
 }

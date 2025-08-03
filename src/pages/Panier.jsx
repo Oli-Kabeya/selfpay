@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { BrowserMultiFormatReader } from '@zxing/browser';
-import FooterNav from '../components/FooterNav';
+import ListeOverlay from '../components/ListeOverlay';
 import { useTranslation } from 'react-i18next';
 import { X, ScanLine } from 'lucide-react';
 import './Panier.css';
 
-const Panier = () => {
+const Panier = ({ showListeOverlay, setShowListeOverlay, setPageReady }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [panier, setPanier] = useState([]);
@@ -38,6 +38,7 @@ const Panier = () => {
         chargerLocal();
       }
       setLoading(false);
+      setPageReady(true); // On signale que la page est prête !
     };
 
     const chargerLocal = () => {
@@ -50,7 +51,7 @@ const Panier = () => {
     };
 
     chargerPanier();
-  }, [db]);
+  }, [db, setPageReady]);
 
   useEffect(() => {
     if (scanning && !showConfirmation) {
@@ -124,7 +125,10 @@ const Panier = () => {
 
   if (loading) {
     return (
-      <div className="loader-container bg-background text-primary">
+      <div
+        className="loader-container bg-background text-primary"
+        style={{ minHeight: 'calc(100vh - 56px)' }} // hauteur pour garder le footer en bas sans saut
+      >
         <div>
           {t('loadingCart')}
           <div className="loader-dots"><span></span><span></span><span></span></div>
@@ -135,7 +139,7 @@ const Panier = () => {
 
   return (
     <div className="panier-page bg-background text-primary pb-28 max-w-md mx-auto">
-      <div className="panier-total text-center text-lg font-semibold">
+      <div className="panier-total">
         {t('total')}: {total} $
       </div>
 
@@ -161,57 +165,54 @@ const Panier = () => {
         <>
           <button
             onClick={allerAuPaiement}
-            className="w-full p-3 rounded-xl text-white font-semibold bg-gradient-to-r from-[#FF5E3A] to-[#FFBA00] shadow hover:opacity-90 mb-2"
+            className="validate-btn w-full mb-2"
           >
             {t('validatePurchase')}
           </button>
 
           <button
             onClick={() => setScanning(true)}
-            className="w-full p-3 rounded-xl bg-blue-600 text-white font-semibold shadow hover:opacity-90"
+            className="scan-btn w-full"
           >
             {t('scanToDelete')}
           </button>
         </>
       )}
 
-      {message && <p className="mt-4 text-center text-blue-500 text-sm">{message}</p>}
+      {message && <p className="message-info">{message}</p>}
 
       {scanning && (
-        <div className="camera-container flex flex-col items-center justify-center relative mt-4">
+        <div className="camera-container">
           <video
             ref={videoRef}
             width="320"
             height="320"
-            className="rounded-2xl border-2 border-gray-300 shadow-lg"
             muted
             autoPlay
             playsInline
           />
-
           {!showConfirmation && (
             <button
               onClick={handleCloseCamera}
-              className="absolute top-2 right-2 bg-[#333] text-white rounded-full p-2 shadow z-20 flex items-center gap-2 hover:bg-black transition"
+              className="camera-close-btn"
+              aria-label={t('closeCamera')}
             >
               <X size={16} /> {t('closeCamera')}
             </button>
           )}
 
           {showConfirmation && (
-            <div className="overlay-buttons flex flex-col items-center mt-4 gap-3 w-full px-4">
-              <p className="text-sm text-center text-blue-500">{t('productDeletedSuccess')}</p>
+            <div className="overlay-buttons">
+              <p className="message-info">{t('productDeletedSuccess')}</p>
               <button
                 onClick={handleContinueScan}
-                className="w-full py-2 rounded-xl text-white font-medium"
-                style={{ backgroundColor: '#007bff' }}
+                className="continue-btn"
               >
                 {t('continueScanning')}
               </button>
               <button
                 onClick={handleCloseCamera}
-                className="w-full py-2 rounded-xl text-white font-medium"
-                style={{ backgroundColor: '#333' }}
+                className="close-btn"
               >
                 {t('closeCamera')}
               </button>
@@ -220,7 +221,7 @@ const Panier = () => {
         </div>
       )}
 
-      <FooterNav />
+      {showListeOverlay && <ListeOverlay onClose={() => setShowListeOverlay(false)} />}
     </div>
   );
 };

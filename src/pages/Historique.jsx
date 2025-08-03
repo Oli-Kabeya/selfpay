@@ -124,8 +124,7 @@ export default function Historique() {
           {t('deleteHistory')}
         </button>
       )}
-
-      <FooterNav />
+      
     </div>
   );
 }

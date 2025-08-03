@@ -1,9 +1,9 @@
 /* Triangle Paramètres 
 .settings-triangle {
   position: fixed;
-  top: 45%;  centré verticalement 
+  top: 45%;  
   right: 0;
-  transform: translateY(-50%) rotate(90deg);  pointe vers la gauche
+  transform: translateY(-50%) rotate(90deg); 
   background-color: var(--nav-active-color);
   padding: 10px;
   border-radius: 15px 0 0 15px;
@@ -17,10 +17,10 @@
   background-color: #ff8800;
 }
 
-Triangle Liste - légèrement plus bas 
+
 .list-triangle {
   position: fixed;
-  top: 58%; 13% plus bas que settings 
+  top: 58%; 
   right: 0;
   transform: translateY(-50%) rotate(90deg);
   background-color: var(--nav-active-color);
