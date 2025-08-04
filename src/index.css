@@ -1,15 +1,14 @@
-/* index.css ou fichier global CSS */
+/* index.css – Design moderne, élégant, responsive avec transparence */
 
 /* Import Tailwind */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Variables CSS thématiques */
-
+/* ========== Variables CSS Thème ========== */
 :root[data-theme='light'] {
-  --color-bg: #f9f9f9;
-  --color-card: #ffffff;
+  --color-bg: rgba(249, 249, 249, 0.95);
+  --color-card: rgba(255, 255, 255, 0.85);
   --color-text: #111827;
   --color-primary: #ff6b00;
 
@@ -19,8 +18,8 @@
 }
 
 :root[data-theme='dark'] {
-  --color-bg: #1f2937;
-  --color-card: #2d3748;
+  --color-bg: rgba(31, 41, 55, 0.95);
+  --color-card: rgba(45, 55, 72, 0.85);
   --color-text: #f9f9f9;
   --color-primary: #ff6b00;
 
@@ -29,82 +28,106 @@
   --nav-active-shadow: 0 0 10px rgba(255, 186, 0, 0.9);
 }
 
-/* Transitions fluides globales */
-html {
-  transition: background-color 0.3s ease, color 0.3s ease;
-  background-color: var(--color-bg);
-  color: var(--color-text);
-}
-
-/* Par sécurité, appliquer box-sizing global */
+/* ========== Reset & Typographie ========== */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Reset marges/paddings globaux */
-body, html {
+html, body {
   margin: 0;
   padding: 0;
   font-family: 'Inter', system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  min-height: 100vh;
   background-color: var(--color-bg);
   color: var(--color-text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
 }
 
-/* Supprime outline sur focus sauf pour clavier */
+/* Responsive container centralisé */
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Effet glass (flou doux) */
+.glass-card {
+  background-color: var(--color-card);
+  backdrop-filter: blur(14px);
+  border-radius: 1rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+}
+
+/* Transitions globales douces */
+.transition-all {
+  transition: all 0.3s ease-in-out;
+}
+
+/* ========== Boutons Modernes ========== */
+button {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+button:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* ========== Overlay Fond ========== */
+.overlay-bg, .dim-background {
+  background-color: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+}
+
+/* ========== Overlay Panel ========== */
+aside {
+  background-color: var(--color-card);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 15px rgba(0,0,0,0.15);
+  border-left: 1px solid rgba(0,0,0,0.05);
+  z-index: 1000;
+}
+
+/* Liste Overlay avec slide */
+aside.list-overlay {
+  transition: transform 0.3s ease-in-out;
+  height: 100vh;
+  width: 70%;
+  max-width: 320px;
+  position: fixed;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  border-left: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* ========== Footer Navigation ========== */
+nav[role="navigation"] {
+  background-color: var(--color-card);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0,0,0,0.1);
+  box-shadow: 0 -2px 6px rgba(0,0,0,0.05);
+}
+
+
+/* ========== Focus visible uniquement clavier ========== */
 :focus:not(:focus-visible) {
   outline: none;
 }
-
-/* Boutons triangles flottants */
-.triangle-btn {
-  padding: 0.6rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  background: linear-gradient(to bottom right, #FFD700, #FF8C00, #FF4500);
-  color: white;
-  transition: transform 0.2s ease, filter 0.2s ease;
-  filter: drop-shadow(0 0 6px rgba(255,136,0,0.6));
+/* Icônes flottantes - pas d'ombre, pas de fond */
+.fixed-icons svg {
+  box-shadow: none !important;
+  background: none !important;
 }
 
-.triangle-btn:hover {
-  transform: scale(1.05);
-  filter: drop-shadow(0 0 8px rgba(255,136,0,0.8));
-}
-
-/* Container boutons flottants fixes à droite, centrés verticalement */
-.fixed-triangles-container {
-  position: fixed;
-  top: 50%;
-  right: 1rem;  /* espace à droite */
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem; /* espace vertical entre boutons */
-  z-index: 1000; /* devant tout */
-}
-
-/* 
-  Suppression des animations conflictuelles slide-in/slide-out.
-  Gestion du slide uniquement via transition transform CSS.
-*/
-
-/* Z-index liste overlay */
-.liste-overlay {
-  z-index: 999 !important;
-}
-
-/* Transition pour slide droite-gauche de l'overlay */
-.translate-x-full {
-  transform: translateX(100%);
-  transition: transform 0.3s ease-in-out;
-}
-
-.translate-x-0 {
-  transform: translateX(0%);
-  transition: transform 0.3s ease-in-out;
-}

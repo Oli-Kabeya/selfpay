@@ -1,60 +1,8 @@
-/* FooterNav.css
-
-.bottom-nav {
+.footer-nav {
   position: fixed;
   bottom: 0;
   left: 0;
-  right: 0;
   width: 100%;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0;
-  border-top: 1px solid var(--color-text);
-  z-index: 1000;
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  box-sizing: border-box;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 12px;
-  cursor: pointer;
-  transition: color 0.3s ease, transform 0.2s ease;
-  padding: 6px 10px;
-  border-radius: 12px;
-  background: transparent;
-  box-shadow: none;
-}
-
-.nav-item:hover {
-  transform: scale(1.05);
-}
-
-.nav-item svg {
-  margin-bottom: 4px;
-  transition: stroke 0.3s ease;
-  stroke: var(--color-text);
-}
-
-État actif : seul texte + icône changent de couleur 
-.nav-item.active-nav {
-  color: var(--nav-active-color);
-}
-
-.nav-item.active-nav svg {
-  stroke: var(--nav-active-color);
-}*/
-
-nav[role="navigation"] {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100vw;
-  max-width: 100%;
   background-color: var(--color-bg);
   color: var(--color-text);
   border-top: 1px solid var(--color-border, #ccc);
@@ -64,11 +12,11 @@ nav[role="navigation"] {
   padding: 0.5rem 0;
   z-index: 50;
   user-select: none;
-  transition: background-color 0.3s ease, color 0.3s ease;
   box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-nav[role="navigation"] > div {
+.nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -80,27 +28,26 @@ nav[role="navigation"] > div {
   outline-offset: 2px;
 }
 
-nav[role="navigation"] > div:hover,
-nav[role="navigation"] > div:focus-visible {
+.nav-item:hover,
+.nav-item:focus-visible {
   transform: scale(1.05);
   color: var(--color-primary, #ff6b00);
 }
 
-nav[role="navigation"] > div[aria-current="page"] {
+.nav-item svg {
+  margin-bottom: 0.15rem;
+  stroke-width: 1.5;
+  transition: stroke 0.3s ease;
+  stroke: var(--color-text);
+}
+
+.nav-item.active-nav {
   color: var(--color-primary, #ff6b00);
   text-shadow: 0 0 6px rgba(255, 107, 0, 0.8);
   filter: drop-shadow(0 0 4px rgba(255, 136, 0, 0.8));
 }
 
-nav[role="navigation"] svg {
-  margin-bottom: 0.15rem;
-  stroke-width: 1.5;
-  transition: stroke 0.3s ease, filter 0.3s ease;
-  stroke: var(--color-text);
-}
-
-nav[role="navigation"] > div[aria-current="page"] svg {
+.nav-item.active-nav svg {
   stroke: var(--color-primary, #ff6b00);
   filter: drop-shadow(0 0 4px rgba(255, 136, 0, 0.8));
 }
-

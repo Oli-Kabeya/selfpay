@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-
 import SplashScreen from './components/SplashScreen';
 import Scan from './pages/Scan';
 import Auth from './pages/Auth';
@@ -11,13 +10,10 @@ import Liste from './pages/Liste';
 import PrivateRoute from './components/PrivateRoute';
 import FooterNav from './components/FooterNav';
 import { auth } from './firebase';
-
 import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n';
-
 import FixedTriangles from './components/FixedTriangles';
 import ListeOverlay from './components/ListeOverlay';
-
 import { FooterVisibilityProvider } from './context/FooterVisibilityContext';
 
 export default function App() {
@@ -71,17 +67,40 @@ function AppContent({ initialRoute, theme, setTheme, showListeOverlay, setShowLi
     setShowListeOverlay((prev) => !prev);
   };
 
+  const swipeStartX = useRef(null);
+
+  useEffect(() => {
+    const handleTouchStart = (e) => {
+      swipeStartX.current = e.touches[0].clientX;
+    };
+
+    const handleTouchEnd = (e) => {
+      const swipeEndX = e.changedTouches[0].clientX;
+      const deltaX = swipeEndX - swipeStartX.current;
+
+      if (!showListeOverlay && deltaX < -50) {
+        setShowListeOverlay(true);
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart);
+    window.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [showListeOverlay]);
+
   return (
     <>
-      {/* Boutons flottants fixes à droite */}
       <FixedTriangles
         onSettingsClick={() => navigate('/profile')}
         onListClick={handleToggleListeOverlay}
         showList={currentPath === '/scan' || currentPath === '/panier'}
-        showOverlay={showListeOverlay}  // <-- bien passer la prop ici
+        showOverlay={showListeOverlay}
       />
 
-      {/* Pages centrées dans un conteneur limité */}
       <div className="relative max-w-md mx-auto min-h-screen">
         <Routes>
           <Route path="/auth" element={<Auth />} />
@@ -94,10 +113,8 @@ function AppContent({ initialRoute, theme, setTheme, showListeOverlay, setShowLi
         </Routes>
       </div>
 
-      {/* Footer visible sauf sur Auth */}
       {!currentPath.startsWith('/auth') && <FooterNav />}
 
-      {/* Overlay Liste de courses totalement flottant */}
       {showListeOverlay && (
         <ListeOverlay onClose={() => setShowListeOverlay(false)} />
       )}

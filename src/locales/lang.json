@@ -41,12 +41,13 @@
   "deleteAll": "Tout supprimer",
   "confirmDeleteAll": "Confirmer la suppression de toute la liste ?",
   "check": "Cocher",
-  "uncheck": "Décocher"
+  "uncheck": "Décocher",
+  "close": "Fermer"
   },
   "en": {
     "scanTitle": "Tap to add a product",
-     "shoppingList": "Shopping List",
-  "emptyShoppingList": "Your shopping list is empty.",
+  "emptyShoppingList": "Your list is empty.",
+  "close": "Close",
   "deleteChecked": "Delete checked",
   "deleteAll": "Delete all",
   "confirmDeleteAll": "Confirm deletion of the entire list?",

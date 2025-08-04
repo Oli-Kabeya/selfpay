@@ -1,12 +1,11 @@
-// src/context/FooterVisibilityContext.jsx
-import React, { createContext, useContext, useState } from 'react';
+import { createContext, useContext } from 'react';
 
+// Faux contexte qui ne fait rien, car plus utilisé
 const FooterVisibilityContext = createContext();
 
 export function FooterVisibilityProvider({ children }) {
-  const [footerVisible, setFooterVisible] = useState(true);
   return (
-    <FooterVisibilityContext.Provider value={{ footerVisible, setFooterVisible }}>
+    <FooterVisibilityContext.Provider value={{ footerVisible: true, setFooterVisible: () => {} }}>
       {children}
     </FooterVisibilityContext.Provider>
   );

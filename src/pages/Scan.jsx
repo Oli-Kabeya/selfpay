@@ -2,11 +2,10 @@ import React, { useEffect, useState, useRef } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth } from '../firebase';
-import FooterNav from '../components/FooterNav';
 import ListeOverlay from '../components/ListeOverlay';
 import { useTranslation } from 'react-i18next';
 import { X, Barcode } from 'lucide-react';
-import './Scan.css';
+import './Scan.css'; // ✅ Import du CSS modernisé
 
 export default function Scan({ showListeOverlay, setShowListeOverlay }) {
   const { t } = useTranslation();
@@ -18,16 +17,10 @@ export default function Scan({ showListeOverlay, setShowListeOverlay }) {
   const codeReaderRef = useRef(null);
   const db = getFirestore();
 
-  // Nettoyage caméra au démontage
-  useEffect(() => {
-    return () => stopCamera();
-  }, []);
-
-  // Démarrer ou arrêter le scan selon l'état
+  useEffect(() => () => stopCamera(), []);
   useEffect(() => {
     if (scanning) startScan();
     else stopCamera();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanning]);
 
   const startScan = async () => {
@@ -47,15 +40,11 @@ export default function Scan({ showListeOverlay, setShowListeOverlay }) {
 
   const stopCamera = () => {
     if (codeReaderRef.current) {
-      try {
-        codeReaderRef.current.reset();
-      } catch {}
+      try { codeReaderRef.current.reset(); } catch {}
       codeReaderRef.current = null;
     }
-    if (videoRef.current && videoRef.current.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach(track => {
-        try { track.stop(); } catch {}
-      });
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
   };
@@ -98,70 +87,58 @@ export default function Scan({ showListeOverlay, setShowListeOverlay }) {
   };
 
   return (
-    <>
+    <div className="scan-page">
       {showFlash && <div className="flash-screen" />}
-      <div className="scan-page" role="main" aria-label={t('scanPage')}>
-        <h1 className="app-title">SelfPay</h1>
-        <p className="scan-subtitle">{t('tapToAddProduct')}</p>
 
-        {!scanning ? (
-          <div
-            className="scan-button-container"
-            onClick={() => setScanning(true)}
-            role="button"
-            tabIndex={0}
-            aria-label={t('startScan')}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setScanning(true); }}
+      <h1 className="app-title">SelfPay</h1>
+      <p className="scan-subtitle">{t('tapToAddProduct')}</p>
+
+      {!scanning ? (
+        <div
+          className="scan-button-container"
+          onClick={() => setScanning(true)}
+          role="button"
+          tabIndex={0}
+          aria-label={t('startScan')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setScanning(true); }}
+        >
+          <div className="scan-button">
+            <Barcode size={40} />
+          </div>
+        </div>
+      ) : (
+        <div className="camera-container">
+          <video
+            ref={videoRef}
+            muted
+            autoPlay
+            playsInline
+            className="camera-video"
+          />
+          <button
+            onClick={handleCloseCamera}
+            className="camera-button camera-close"
+            aria-label={t('closeCamera')}
           >
-            <div className="scan-button" aria-hidden="true">
-              <Barcode size={40} color="white" />
-            </div>
-          </div>
-        ) : (
-          <div className="camera-container" aria-live="polite" aria-label={t('cameraActive')}>
-            <video
-              ref={videoRef}
-              width="300"
-              height="300"
-              muted
-              autoPlay
-              playsInline
-              className="camera-video"
-            />
-            <button
-              onClick={handleCloseCamera}
-              className="camera-button camera-close"
-              aria-label={t('closeCamera')}
-            >
-              <X size={16} aria-hidden="true" /> {t('closeCamera')}
-            </button>
-          </div>
-        )}
+            <X size={16} /> {t('closeCamera')}
+          </button>
+        </div>
+      )}
 
-        {showButtons && (
-          <div className="scan-buttons-container">
-            <button
-              onClick={handleScanAgain}
-              className="camera-continue"
-              aria-label={t('continueScanning')}
-            >
-              {t('continueScanning')}
-            </button>
-            <button
-              onClick={handleCloseCamera}
-              className="camera-finish"
-              aria-label={t('finish')}
-            >
-              {t('finish')}
-            </button>
-          </div>
-        )}
+      {showButtons && (
+        <div className="scan-buttons-container">
+          <button onClick={handleScanAgain} className="camera-button camera-continue">
+            {t('continueScanning')}
+          </button>
+          <button onClick={handleCloseCamera} className="camera-button camera-finish">
+            {t('finish')}
+          </button>
+        </div>
+      )}
 
-        {message && <p className="message" role="alert">{message}</p>}
+      {message && <p className="message">{message}</p>}
 
-        {showListeOverlay && <ListeOverlay onClose={() => setShowListeOverlay(false)} />}
-        
-      </div>
-    </>
+      {showListeOverlay && <ListeOverlay onClose={() => setShowListeOverlay(false)} />}
+    </div>
   );
 }
