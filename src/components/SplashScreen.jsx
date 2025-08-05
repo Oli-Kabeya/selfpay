@@ -31,7 +31,7 @@ const SplashScreen = () => {
 
       <div className="text-center mt-4">
         <p className="text-xs tracking-widest from-text">from</p>
-        <p className="text-sm font-semibold uppercase bg-gradient-to-r text-transparent bg-clip-text scanera-text">
+        <p className="scanera-texts">
           Scanera
         </p>
       </div>

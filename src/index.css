@@ -131,3 +131,7 @@ nav[role="navigation"] {
   background: none !important;
 }
 
+html, body, #root {
+  height: 100%;
+  overflow: hidden; /* important pour que seul le scroll interne fonctionne */
+}

@@ -11,7 +11,6 @@ export default function Scan({ showListeOverlay, setShowListeOverlay }) {
   const { t } = useTranslation();
   const [scanning, setScanning] = useState(false);
   const [message, setMessage] = useState('');
-  const [showButtons, setShowButtons] = useState(false);
   const [showFlash, setShowFlash] = useState(false);
   const videoRef = useRef(null);
   const codeReaderRef = useRef(null);
@@ -69,20 +68,12 @@ export default function Scan({ showListeOverlay, setShowListeOverlay }) {
     setShowFlash(true);
     setTimeout(() => setShowFlash(false), 200);
     setMessage(`${t('added')}: ${produit.nom}`);
-    setScanning(false);
-    setShowButtons(true);
-  };
-
-  const handleScanAgain = () => {
-    setMessage('');
-    setShowButtons(false);
-    setScanning(true);
+    setScanning(false); // ✅ Ferme la caméra après ajout
   };
 
   const handleCloseCamera = () => {
     stopCamera();
     setScanning(false);
-    setShowButtons(false);
     setMessage('');
   };
 
@@ -121,17 +112,6 @@ export default function Scan({ showListeOverlay, setShowListeOverlay }) {
             aria-label={t('closeCamera')}
           >
             <X size={16} /> {t('closeCamera')}
-          </button>
-        </div>
-      )}
-
-      {showButtons && (
-        <div className="scan-buttons-container">
-          <button onClick={handleScanAgain} className="camera-button camera-continue">
-            {t('continueScanning')}
-          </button>
-          <button onClick={handleCloseCamera} className="camera-button camera-finish">
-            {t('finish')}
           </button>
         </div>
       )}

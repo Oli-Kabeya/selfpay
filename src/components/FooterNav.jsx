@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ShoppingCart, History, List, Camera } from 'lucide-react';
-import useTranslation from '../hooks/useTranslation';
+import { useTranslation } from 'react-i18next'; // ← utilise react-i18next
 import './FooterNav.css';
 import { useFooterVisibility } from '../context/FooterVisibilityContext';
 
@@ -10,7 +10,7 @@ export default function FooterNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
-  const { t } = useTranslation();
+  const { t } = useTranslation(); // ← hook correct
 
   if (!footerVisible || currentPath.startsWith('/auth')) return null;
 
@@ -24,17 +24,17 @@ export default function FooterNav() {
   };
 
   const navItems = [
-    { path: '/scan', icon: Camera, label: t('scan') },
-    { path: '/panier', icon: ShoppingCart, label: t('cart') },
-    { path: '/historique', icon: History, label: t('history') },
-    { path: '/liste', icon: List, label: t('shoppingList') },
+    { path: '/scan', icon: Camera, label: t('footerScan') },
+    { path: '/panier', icon: ShoppingCart, label: t('footerCart') },
+    { path: '/historique', icon: History, label: t('footerHistory') },
+    { path: '/liste', icon: List, label: t('footerList') },
   ];
 
   return (
     <nav
       className="footer-nav"
       role="navigation"
-      aria-label="Footer navigation"
+      aria-label={t('footerNavigation')}
     >
       {navItems.map(({ path, icon: Icon, label }) => {
         const active = isActive(path);

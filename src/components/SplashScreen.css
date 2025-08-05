@@ -47,33 +47,6 @@ html, body {
   margin-bottom: 35%;
 }
 
-.text-center {
-  position: fixed;
-  bottom: 5%;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-}
-
-.from-text {
-  color: var(--from-text-color);
-  font-size: 0.75rem;
-  letter-spacing: 0.2em;
-  margin: 0;
-  user-select: none;
-}
-
-.scanera-text {
-  margin: 0;
-  font-weight: 700;
-  font-size: 1rem;
-  text-transform: uppercase;
-  background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  user-select: none;
-}
 
 .slogan-text {
   position: fixed;
@@ -90,6 +63,40 @@ html, body {
   z-index: 10;
   user-select: none;
 }
+
+.text-center {
+  position: fixed;
+  z-index: 20 !important; /* Force priorité */
+  display: block !important; /* Si jamais display: none vient de global */
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 20; /* Ajouté */
+  pointer-events: none; /* Ajouté pour éviter blocage par le logo */
+}
+
+.from-text {
+  color: var(--from-text-color);
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  margin: 0;
+  user-select: none;
+}
+
+.scanera-texts {
+  font-weight: 400;
+  font-size: 1rem;
+  text-transform: uppercase;
+  background: linear-gradient(to right, #ff0000, #ffd700);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  user-select: none;
+
+}
+
+
 
 /* Mode paysage */
 @media screen and (orientation: landscape) {

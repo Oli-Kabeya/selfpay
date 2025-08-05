@@ -2,10 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import { auth } from '../firebase';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import './ListeOverlay.css';
 
 export default function ListeOverlay({ onClose }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const db = getFirestore();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +37,6 @@ export default function ListeOverlay({ onClose }) {
     fetchList();
   }, [db]);
 
-  // Gérer le swipe gauche->droite pour fermer l'overlay
   const touchStartX = useRef(null);
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
@@ -43,7 +44,7 @@ export default function ListeOverlay({ onClose }) {
   const handleTouchEnd = (e) => {
     const touchEndX = e.changedTouches[0].clientX;
     const deltaX = touchEndX - touchStartX.current;
-    if (deltaX > 50) onClose(); // swipe gauche -> droite
+    if (deltaX > 50) onClose();
   };
 
   return (
@@ -64,7 +65,12 @@ export default function ListeOverlay({ onClose }) {
           {loading ? (
             <p>{t('loading')}</p>
           ) : items.length === 0 ? (
-            <p>{t('emptyShoppingList')}</p>
+            <div className="empty-overlay">
+              <p>{t('emptyShoppingList')}</p>
+              <button onClick={() => navigate('/liste')} className="go-to-liste-btn">
+                {t('addNewItem')}
+              </button>
+            </div>
           ) : (
             <ul>
               {items.map(({ id, nom, checked }) => (

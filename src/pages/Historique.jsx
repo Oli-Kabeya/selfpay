@@ -29,7 +29,7 @@ export default function Historique() {
         });
         setAchats(listeAchats);
       } catch (err) {
-        console.error(t('errorLoadingHistory'), err);
+        console.error(t('errorLoading'), err);
         setAchats([]);
       } finally {
         setLoading(false);
@@ -48,20 +48,24 @@ export default function Historique() {
     return () => unsubscribe();
   }, [db, t]);
 
+  const totalDepense = achats.reduce((sum, achat) => sum + (achat.montant || 0), 0);
+
   const supprimerHistorique = async () => {
     if (!auth.currentUser) return;
-    if (!window.confirm(t('confirmDeleteHistory'))) return;
+    if (!window.confirm(t('confirmDelete'))) return;
 
     try {
       const achatsRef = collection(db, 'achats', auth.currentUser.uid, 'liste');
       const snapshot = await getDocs(achatsRef);
-      const deletePromises = snapshot.docs.map(docSnap => deleteDoc(doc(db, 'achats', auth.currentUser.uid, 'liste', docSnap.id)));
+      const deletePromises = snapshot.docs.map(docSnap =>
+        deleteDoc(doc(db, 'achats', auth.currentUser.uid, 'liste', docSnap.id))
+      );
       await Promise.all(deletePromises);
       setAchats([]);
-      setMessage(t('historyDeleted'));
+      setMessage(t('deleted'));
     } catch (err) {
-      console.error(t('errorDeletingHistory'), err);
-      setMessage(t('errorOnDelete'));
+      console.error(t('errorDelete'), err);
+      setMessage(t('errorOccurred'));
     }
     setTimeout(() => setMessage(''), 4000);
   };
@@ -70,7 +74,7 @@ export default function Historique() {
     return (
       <div className="h-screen flex flex-col justify-center items-center bg-background text-primary transition-colors duration-300">
         <div className="loader mb-4"></div>
-        <p className="text-lg font-semibold">{t('loading') || 'Chargement...'}</p>
+        <p className="text-lg font-semibold">{t('loading')}</p>
       </div>
     );
   }
@@ -78,10 +82,16 @@ export default function Historique() {
   return (
     <div className="historique-page">
       <div className="historique-header">
-        {t('purchaseHistory')}
-      </div>
+  <h1 className="text-xl font-bold mb-2">{t('title')}</h1>
+  <p className="text-base font-medium">
+    {t('totalSpent')}: {totalDepense.toFixed(2)} $
+  </p>
+</div>
 
-      {message && <p className="mb-4 text-center text-green-600 dark:text-green-400">{message}</p>}
+
+      {message && (
+        <p className="mb-4 text-center text-green-600 dark:text-green-400">{message}</p>
+      )}
 
       {achats.length === 0 ? (
         <div className="empty-history">
@@ -99,7 +109,7 @@ export default function Historique() {
               d="M8 7V3m8 4V3m-9 9h10m-11 4h12m-12 4h12M4 21h16a1 1 0 001-1V7a1 1 0 00-1-1H4a1 1 0 00-1 1v13a1 1 0 001 1z"
             />
           </svg>
-          <p className="empty-text">{t('noPurchasesYetMessage')}</p>
+          <p className="empty-text">{t('noPurchases')}</p>
         </div>
       ) : (
         <ul className="achats-list">
@@ -109,7 +119,7 @@ export default function Historique() {
                 {t('date')}: {achat.date ? new Date(achat.date.seconds * 1000).toLocaleString() : t('unknownDate')}
               </p>
               <p className="achat-montant">
-                {t('amount')}: {achat.montant} $
+                {t('amount')}: {achat.montant.toFixed(2)} $
               </p>
             </li>
           ))}
@@ -121,10 +131,11 @@ export default function Historique() {
           onClick={supprimerHistorique}
           className="w-full p-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold shadow mt-4"
         >
-          {t('deleteHistory')}
+          {t('delete')}
         </button>
       )}
-      
+
+      <FooterNav />
     </div>
   );
 }

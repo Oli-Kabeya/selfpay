@@ -7,6 +7,7 @@ import Profile from './pages/Profile';
 import Historique from './pages/Historique';
 import Panier from './pages/Panier';
 import Liste from './pages/Liste';
+import Paiement from './pages/Paiement'; // ✅ Ajouté ici
 import PrivateRoute from './components/PrivateRoute';
 import FooterNav from './components/FooterNav';
 import { auth } from './firebase';
@@ -109,6 +110,7 @@ function AppContent({ initialRoute, theme, setTheme, showListeOverlay, setShowLi
           <Route path="/panier" element={<PrivateRoute><Panier showListeOverlay={showListeOverlay} setShowListeOverlay={setShowListeOverlay} /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><Profile theme={theme} setTheme={setTheme} /></PrivateRoute>} />
           <Route path="/liste" element={<PrivateRoute><Liste /></PrivateRoute>} />
+          <Route path="/paiement" element={<PrivateRoute><Paiement /></PrivateRoute>} /> {/* ✅ Ajouté ici */}
           <Route path="*" element={<Navigate to={initialRoute} replace />} />
         </Routes>
       </div>

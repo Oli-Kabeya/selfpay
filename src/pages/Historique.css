@@ -82,3 +82,9 @@
   100% { transform: rotate(360deg); }
 }
 
+.historique-header {
+  text-align: center;
+  margin: 24px 0;
+}
+
+

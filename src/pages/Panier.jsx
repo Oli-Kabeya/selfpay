@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import ListeOverlay from '../components/ListeOverlay';
 import { useTranslation } from 'react-i18next';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 import './Panier.css';
 
 export default function Panier({ showListeOverlay, setShowListeOverlay }) {
@@ -11,6 +12,8 @@ export default function Panier({ showListeOverlay, setShowListeOverlay }) {
   const navigate = useNavigate();
   const [panier, setPanier] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showCamera, setShowCamera] = useState(false);
+  const videoRef = useRef(null);
   const db = getFirestore();
 
   useEffect(() => {
@@ -35,17 +38,62 @@ export default function Panier({ showListeOverlay, setShowListeOverlay }) {
 
   const total = panier.reduce((sum, item) => sum + (item.prix || 0), 0);
 
+  // Scanner pour supprimer un produit
+  useEffect(() => {
+    if (!showCamera) return;
+
+    const codeReader = new BrowserMultiFormatReader();
+    let selectedDeviceId = null;
+
+    codeReader
+      .listVideoInputDevices()
+      .then((videoInputDevices) => {
+        selectedDeviceId = videoInputDevices[0]?.deviceId;
+        return codeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current, async (result) => {
+          if (result) {
+            const code = result.getText();
+            await handleRemoveScan(code);
+            codeReader.reset();
+          }
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+
+    return () => {
+      codeReader.reset();
+    };
+  }, [showCamera]);
+
+  const handleRemoveScan = async (scannedCode) => {
+    const updatedPanier = panier.filter(item => item.code !== scannedCode);
+    setPanier(updatedPanier);
+
+    // Mise à jour localStorage
+    localStorage.setItem('panier', JSON.stringify(updatedPanier));
+
+    // Mise à jour Firestore
+    const user = auth.currentUser;
+    if (user) {
+      const panierRef = doc(db, 'paniers', user.uid);
+      await setDoc(panierRef, { articles: updatedPanier }, { merge: true });
+    }
+
+    setShowCamera(false);
+  };
+
   return (
     <div className="panier-page relative">
       <div className="panier-content scrollable-content">
         <h1 className="total-header">
-          {t('total') || 'Total'} : {total.toFixed(2)} $
+          {t('total')}: {total.toFixed(2)} $
         </h1>
 
         {loading ? (
-          <p className="loading-text">{t('loadingCart') || 'Chargement...'}</p>
+          <p className="loading-text">{t('loadingCart')}</p>
         ) : panier.length === 0 ? (
-          <p className="empty-text">{t('cartEmptyMessage') || 'Votre panier est vide.'}</p>
+          <p className="empty-text">{t('cartEmptyMessage')}</p>
         ) : (
           <ul className="product-list">
             {panier.map((item, idx) => (
@@ -58,26 +106,38 @@ export default function Panier({ showListeOverlay, setShowListeOverlay }) {
         )}
       </div>
 
+      {/* CameraView pour suppression */}
+      {showCamera && (
+        <div className="camera-overlay">
+          <video ref={videoRef} className="camera-video" />
+          <button
+            className="close-camera-btn"
+            onClick={() => setShowCamera(false)}
+          >
+            ✕ {t('closeCamera')}
+          </button>
+        </div>
+      )}
+
       {/* Deux boutons côte à côte */}
       <div className="floating-button-row">
         <button
-          className="scan-btn"
-          onClick={() => navigate('/scan')}
+          className="button-base scan-btn"
+          onClick={() => setShowCamera(true)}
         >
-          {t('scanMore') || 'Scanner'}
+          {t('removeScan')}
         </button>
 
         {panier.length > 0 && (
           <button
-            className="validate-btn"
+            className="button-base validate-btn"
             onClick={() => navigate('/paiement')}
           >
-            {t('validatePurchase') || 'Valider'}
+            {t('validatePurchase')}
           </button>
         )}
       </div>
 
-      {/* Overlay visible */}
       {showListeOverlay && <ListeOverlay onClose={() => setShowListeOverlay(false)} />}
     </div>
   );
