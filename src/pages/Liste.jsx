@@ -88,7 +88,7 @@ export default function Liste() {
       id: Date.now().toString(),
       nom: trimmed,
       checked: false,
-      ajoute_le: new Date() // ajout horodatage
+      ajoute_le: new Date()
     };
     const updatedItems = [...items, newItem];
     setItems(updatedItems);
@@ -163,7 +163,8 @@ export default function Liste() {
                       onBlur={() => saveEditing(id)}
                       autoFocus
                       className="edit-input"
-                      aria-label={t('editItem') || 'Modifier le produit'}
+                      inputMode="text"
+                      style={{ fontSize: '16px' }} // Pour éviter le zoom mobile
                     />
                     <button onClick={() => saveEditing(id)} className="save-btn" aria-label={t('save')}>✓</button>
                     <button onClick={cancelEditing} className="cancel-btn" aria-label={t('cancel')}>✗</button>
@@ -215,6 +216,8 @@ export default function Liste() {
           onChange={(e) => setNewItemName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addItem()}
           aria-label={t('addNewItem')}
+          inputMode="text"
+          style={{ fontSize: '16px' }} // évite zoom mobile
         />
         <button onClick={addItem} disabled={!newItemName.trim()}>
           {t('add')}

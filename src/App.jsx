@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import SplashScreen from './components/SplashScreen';
 import Scan from './pages/Scan';
 import Auth from './pages/Auth';
@@ -7,7 +7,7 @@ import Profile from './pages/Profile';
 import Historique from './pages/Historique';
 import Panier from './pages/Panier';
 import Liste from './pages/Liste';
-import Paiement from './pages/Paiement'; // ✅ Ajouté ici
+import Paiement from './pages/Paiement';
 import PrivateRoute from './components/PrivateRoute';
 import FooterNav from './components/FooterNav';
 import { auth } from './firebase';
@@ -21,7 +21,6 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [initialRoute, setInitialRoute] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
-  const [showListeOverlay, setShowListeOverlay] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -46,80 +45,49 @@ export default function App() {
     <I18nextProvider i18n={i18n}>
       <Router>
         <FooterVisibilityProvider>
-          <AppContent
-            initialRoute={initialRoute}
-            theme={theme}
-            setTheme={setTheme}
-            showListeOverlay={showListeOverlay}
-            setShowListeOverlay={setShowListeOverlay}
-          />
+          <AppContent initialRoute={initialRoute} theme={theme} setTheme={setTheme} />
         </FooterVisibilityProvider>
       </Router>
     </I18nextProvider>
   );
 }
 
-function AppContent({ initialRoute, theme, setTheme, showListeOverlay, setShowListeOverlay }) {
+// AppContent avec gestion globale du showListeOverlay
+import { useLocation, useNavigate } from 'react-router-dom';
+function AppContent({ initialRoute, theme, setTheme }) {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
 
-  const handleToggleListeOverlay = () => {
-    setShowListeOverlay((prev) => !prev);
-  };
-
-  const swipeStartX = useRef(null);
-
-  useEffect(() => {
-    const handleTouchStart = (e) => {
-      swipeStartX.current = e.touches[0].clientX;
-    };
-
-    const handleTouchEnd = (e) => {
-      const swipeEndX = e.changedTouches[0].clientX;
-      const deltaX = swipeEndX - swipeStartX.current;
-
-      if (!showListeOverlay && deltaX < -50) {
-        setShowListeOverlay(true);
-      }
-    };
-
-    window.addEventListener('touchstart', handleTouchStart);
-    window.addEventListener('touchend', handleTouchEnd);
-
-    return () => {
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchend', handleTouchEnd);
-    };
-  }, [showListeOverlay]);
+  const showListIcon = currentPath === '/scan' || currentPath === '/panier';
+  const [showListeOverlay, setShowListeOverlay] = useState(false);
 
   return (
     <>
       <FixedTriangles
         onSettingsClick={() => navigate('/profile')}
-        onListClick={handleToggleListeOverlay}
-        showList={currentPath === '/scan' || currentPath === '/panier'}
-        showOverlay={showListeOverlay}
+        onListClick={() => setShowListeOverlay(true)}
+        showList={showListIcon}
+        showOverlay={false}
       />
 
       <div className="relative max-w-md mx-auto min-h-screen">
         <Routes>
           <Route path="/auth" element={<Auth />} />
-          <Route path="/scan" element={<PrivateRoute><Scan showListeOverlay={showListeOverlay} setShowListeOverlay={setShowListeOverlay} /></PrivateRoute>} />
+          <Route path="/scan" element={<PrivateRoute><Scan /></PrivateRoute>} />
           <Route path="/historique" element={<PrivateRoute><Historique /></PrivateRoute>} />
-          <Route path="/panier" element={<PrivateRoute><Panier showListeOverlay={showListeOverlay} setShowListeOverlay={setShowListeOverlay} /></PrivateRoute>} />
+          <Route path="/panier" element={<PrivateRoute><Panier /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><Profile theme={theme} setTheme={setTheme} /></PrivateRoute>} />
           <Route path="/liste" element={<PrivateRoute><Liste /></PrivateRoute>} />
-          <Route path="/paiement" element={<PrivateRoute><Paiement /></PrivateRoute>} /> {/* ✅ Ajouté ici */}
+          <Route path="/paiement" element={<PrivateRoute><Paiement /></PrivateRoute>} />
           <Route path="*" element={<Navigate to={initialRoute} replace />} />
         </Routes>
+
+        {/* ListeOverlay rendu globalement ici */}
+        {showListeOverlay && <ListeOverlay onClose={() => setShowListeOverlay(false)} />}
       </div>
 
       {!currentPath.startsWith('/auth') && <FooterNav />}
-
-      {showListeOverlay && (
-        <ListeOverlay onClose={() => setShowListeOverlay(false)} />
-      )}
     </>
   );
 }

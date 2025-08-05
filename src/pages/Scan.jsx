@@ -5,21 +5,30 @@ import { auth } from '../firebase';
 import ListeOverlay from '../components/ListeOverlay';
 import { useTranslation } from 'react-i18next';
 import { X, Barcode } from 'lucide-react';
-import './Scan.css'; // ✅ Import du CSS modernisé
+import './Scan.css';
 
-export default function Scan({ showListeOverlay, setShowListeOverlay }) {
+export default function Scan() {
   const { t } = useTranslation();
   const [scanning, setScanning] = useState(false);
   const [message, setMessage] = useState('');
   const [showFlash, setShowFlash] = useState(false);
+  const [showListeOverlay, setShowListeOverlay] = useState(false);
   const videoRef = useRef(null);
   const codeReaderRef = useRef(null);
+  const swipeStartX = useRef(null);
   const db = getFirestore();
 
-  useEffect(() => () => stopCamera(), []);
+  // Stop caméra si Scan se démonte
   useEffect(() => {
-    if (scanning) startScan();
-    else stopCamera();
+    return () => stopCamera();
+  }, []);
+
+  useEffect(() => {
+    if (scanning) {
+      startScan();
+    } else {
+      stopCamera();
+    }
   }, [scanning]);
 
   const startScan = async () => {
@@ -39,11 +48,17 @@ export default function Scan({ showListeOverlay, setShowListeOverlay }) {
 
   const stopCamera = () => {
     if (codeReaderRef.current) {
-      try { codeReaderRef.current.reset(); } catch {}
+      try {
+        codeReaderRef.current.reset();
+      } catch (err) {
+        console.warn('Erreur reset codeReader:', err);
+      }
       codeReaderRef.current = null;
     }
     if (videoRef.current?.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      const stream = videoRef.current.srcObject;
+      const tracks = stream.getTracks();
+      tracks.forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
   };
@@ -68,7 +83,8 @@ export default function Scan({ showListeOverlay, setShowListeOverlay }) {
     setShowFlash(true);
     setTimeout(() => setShowFlash(false), 200);
     setMessage(`${t('added')}: ${produit.nom}`);
-    setScanning(false); // ✅ Ferme la caméra après ajout
+    setScanning(false);
+    stopCamera(); // ✅ Fermeture explicite de la caméra
   };
 
   const handleCloseCamera = () => {
@@ -76,6 +92,25 @@ export default function Scan({ showListeOverlay, setShowListeOverlay }) {
     setScanning(false);
     setMessage('');
   };
+
+  // Swipe gauche => ouvre ListeOverlay
+  useEffect(() => {
+    const handleTouchStart = (e) => {
+      swipeStartX.current = e.touches[0].clientX;
+    };
+    const handleTouchEnd = (e) => {
+      const swipeEndX = e.changedTouches[0].clientX;
+      const deltaX = swipeEndX - swipeStartX.current;
+      if (deltaX < -50) setShowListeOverlay(true);
+    };
+
+    window.addEventListener('touchstart', handleTouchStart);
+    window.addEventListener('touchend', handleTouchEnd);
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
 
   return (
     <div className="scan-page">
@@ -91,7 +126,9 @@ export default function Scan({ showListeOverlay, setShowListeOverlay }) {
           role="button"
           tabIndex={0}
           aria-label={t('startScan')}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setScanning(true); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') setScanning(true);
+          }}
         >
           <div className="scan-button">
             <Barcode size={40} />

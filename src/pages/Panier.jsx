@@ -7,27 +7,27 @@ import { useTranslation } from 'react-i18next';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import './Panier.css';
 
-export default function Panier({ showListeOverlay, setShowListeOverlay }) {
+export default function Panier() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [panier, setPanier] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCamera, setShowCamera] = useState(false);
+  const [showListeOverlay, setShowListeOverlay] = useState(false);
   const videoRef = useRef(null);
+  const swipeStartX = useRef(null);
+  const codeReaderRef = useRef(null);
   const db = getFirestore();
 
+  // Charger panier Firestore
   useEffect(() => {
     const chargerPanier = async () => {
       const user = auth.currentUser;
       if (user) {
         const panierRef = doc(db, 'paniers', user.uid);
         const docSnap = await getDoc(panierRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data().articles || [];
-          setPanier(data);
-        } else {
-          setPanier([]);
-        }
+        const data = docSnap.exists() ? docSnap.data().articles || [] : [];
+        setPanier(data);
       } else {
         setPanier([]);
       }
@@ -38,50 +38,77 @@ export default function Panier({ showListeOverlay, setShowListeOverlay }) {
 
   const total = panier.reduce((sum, item) => sum + (item.prix || 0), 0);
 
-  // Scanner pour supprimer un produit
+  // Gestion caméra suppression produit
   useEffect(() => {
-    if (!showCamera) return;
+    if (!showCamera) {
+      stopCamera();
+      return;
+    }
 
-    const codeReader = new BrowserMultiFormatReader();
-    let selectedDeviceId = null;
-
-    codeReader
-      .listVideoInputDevices()
-      .then((videoInputDevices) => {
-        selectedDeviceId = videoInputDevices[0]?.deviceId;
-        return codeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current, async (result) => {
-          if (result) {
+    const startCamera = async () => {
+      try {
+        codeReaderRef.current = new BrowserMultiFormatReader();
+        await codeReaderRef.current.decodeOnceFromVideoDevice(undefined, videoRef.current)
+          .then(async (result) => {
             const code = result.getText();
             await handleRemoveScan(code);
-            codeReader.reset();
-          }
-        });
-      })
-      .catch((err) => {
-        console.error(err);
-      });
-
-    return () => {
-      codeReader.reset();
+            stopCamera(); // ✅ Stop caméra après scan
+            setShowCamera(false);
+          });
+      } catch (err) {
+        console.error('Erreur caméra :', err);
+        stopCamera();
+        setShowCamera(false);
+        alert(t('cameraError') || 'Erreur caméra. Vérifiez les permissions.');
+      }
     };
+
+    startCamera();
+
+    return () => stopCamera();
   }, [showCamera]);
+
+  const stopCamera = () => {
+    if (codeReaderRef.current) {
+      try { codeReaderRef.current.reset(); } catch {}
+      codeReaderRef.current = null;
+    }
+    if (videoRef.current?.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+  };
 
   const handleRemoveScan = async (scannedCode) => {
     const updatedPanier = panier.filter(item => item.code !== scannedCode);
     setPanier(updatedPanier);
-
-    // Mise à jour localStorage
     localStorage.setItem('panier', JSON.stringify(updatedPanier));
 
-    // Mise à jour Firestore
     const user = auth.currentUser;
     if (user) {
       const panierRef = doc(db, 'paniers', user.uid);
       await setDoc(panierRef, { articles: updatedPanier }, { merge: true });
     }
-
-    setShowCamera(false);
   };
+
+  // Swipe gauche => ouvre ListeOverlay
+  useEffect(() => {
+    const handleTouchStart = (e) => {
+      swipeStartX.current = e.touches[0].clientX;
+    };
+    const handleTouchEnd = (e) => {
+      const swipeEndX = e.changedTouches[0].clientX;
+      const deltaX = swipeEndX - swipeStartX.current;
+      if (deltaX < -50) setShowListeOverlay(true);
+    };
+
+    window.addEventListener('touchstart', handleTouchStart);
+    window.addEventListener('touchend', handleTouchEnd);
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
 
   return (
     <div className="panier-page relative">
@@ -106,20 +133,22 @@ export default function Panier({ showListeOverlay, setShowListeOverlay }) {
         )}
       </div>
 
-      {/* CameraView pour suppression */}
+      {/* CameraView suppression produit */}
       {showCamera && (
         <div className="camera-overlay">
-          <video ref={videoRef} className="camera-video" />
+          <video ref={videoRef} className="camera-video" autoPlay muted playsInline />
           <button
             className="close-camera-btn"
-            onClick={() => setShowCamera(false)}
+            onClick={() => {
+              stopCamera();
+              setShowCamera(false);
+            }}
           >
             ✕ {t('closeCamera')}
           </button>
         </div>
       )}
 
-      {/* Deux boutons côte à côte */}
       <div className="floating-button-row">
         <button
           className="button-base scan-btn"

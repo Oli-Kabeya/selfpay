@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { auth } from '../firebase';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import './ListeOverlay.css';
@@ -36,6 +36,25 @@ export default function ListeOverlay({ onClose }) {
     };
     fetchList();
   }, [db]);
+
+  const updateFirestoreList = async (newItems) => {
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+      const docRef = doc(db, 'listes_courses', user.uid);
+      await setDoc(docRef, { items: newItems }, { merge: true });
+    } catch (error) {
+      console.error('Erreur Firestore:', error);
+    }
+  };
+
+  const toggleChecked = async (id) => {
+    const updatedItems = items.map(item =>
+      item.id === id ? { ...item, checked: !item.checked } : item
+    );
+    setItems(updatedItems);
+    await updateFirestoreList(updatedItems);
+  };
 
   const touchStartX = useRef(null);
   const handleTouchStart = (e) => {
@@ -75,7 +94,12 @@ export default function ListeOverlay({ onClose }) {
             <ul>
               {items.map(({ id, nom, checked }) => (
                 <li key={id} className="item">
-                  <input type="checkbox" checked={checked || false} readOnly />
+                  <input
+                    type="checkbox"
+                    checked={checked || false}
+                    onChange={() => toggleChecked(id)}
+                    aria-label={`${checked ? t('uncheck') : t('check')} ${nom}`}
+                  />
                   <span className={checked ? 'checked' : ''}>{nom}</span>
                 </li>
               ))}

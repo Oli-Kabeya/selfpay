@@ -102,3 +102,7 @@
   font-weight: bold;
   cursor: pointer;
 }
+
+.liste-input-container input {
+  font-size: 16px; /* empêche le zoom mobile */
+}
