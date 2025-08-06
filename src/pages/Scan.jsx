@@ -20,7 +20,6 @@ export default function Scan() {
   const codeReaderRef = useRef(null);
   const swipeStartX = useRef(null);
   const db = getFirestore();
-  const scanAttempts = useRef(0);
 
   useEffect(() => {
     const updateStatus = () => setIsOnline(navigator.onLine);
@@ -51,13 +50,6 @@ export default function Scan() {
         if (result) {
           codeReaderRef.current.reset();
           await ajouterProduit(result.getText());
-        } else if (err) {
-          scanAttempts.current++;
-          if (scanAttempts.current >= 3) {
-            setMessage(t('distanceAdvice'));
-            setTimeout(() => setMessage(''), 2500);
-            scanAttempts.current = 0;
-          }
         }
       });
     } catch (error) {
@@ -142,8 +134,6 @@ export default function Scan() {
       ) : (
         <div className="camera-container">
           <video ref={videoRef} muted autoPlay playsInline className="camera-video" />
-          <div className="scan-frame" />
-          <p className="scan-hint">{t('scanHint')}</p>
           <button onClick={handleCloseCamera} className="camera-button camera-close">
             <X size={16} /> {t('closeCamera')}
           </button>
