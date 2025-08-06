@@ -11,29 +11,40 @@ export default function Historique() {
   const [achats, setAchats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const db = getFirestore();
+
+  useEffect(() => {
+    const updateStatus = () => setIsOnline(navigator.onLine);
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+    return () => {
+      window.removeEventListener('online', updateStatus);
+      window.removeEventListener('offline', updateStatus);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchAchats = async (user) => {
       try {
-        // Charger depuis localStorage d'abord
         const localData = JSON.parse(localStorage.getItem('achats') || '[]');
         setAchats(localData);
-        
-        // Puis tenter Firestore pour MAJ si en ligne
-        const achatsRef = collection(db, 'achats', user.uid, 'liste');
-        const snapshot = await getDocs(achatsRef);
-        const listeAchats = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        listeAchats.sort((a, b) => {
-          if (!a.date) return 1;
-          if (!b.date) return -1;
-          return b.date.seconds - a.date.seconds;
-        });
-        setAchats(listeAchats);
-        localStorage.setItem('achats', JSON.stringify(listeAchats));
+
+        if (isOnline) {
+          const achatsRef = collection(db, 'achats', user.uid, 'liste');
+          const snapshot = await getDocs(achatsRef);
+          const listeAchats = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          listeAchats.sort((a, b) => {
+            if (!a.date) return 1;
+            if (!b.date) return -1;
+            return b.date.seconds - a.date.seconds;
+          });
+          setAchats(listeAchats);
+          localStorage.setItem('achats', JSON.stringify(listeAchats));
+        }
       } catch (err) {
         console.error(t('errorLoading'), err);
       } finally {
@@ -42,10 +53,8 @@ export default function Historique() {
     };
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        fetchAchats(user);
-      } else {
-        // Si déconnecté : charger localStorage
+      if (user) fetchAchats(user);
+      else {
         const localData = JSON.parse(localStorage.getItem('achats') || '[]');
         setAchats(localData);
         setLoading(false);
@@ -53,7 +62,7 @@ export default function Historique() {
     });
 
     return () => unsubscribe();
-  }, [db, t]);
+  }, [db, t, isOnline]);
 
   const totalDepense = achats.reduce((sum, achat) => sum + (achat.montant || 0), 0);
 
@@ -62,12 +71,14 @@ export default function Historique() {
     if (!window.confirm(t('confirmDelete'))) return;
 
     try {
-      const achatsRef = collection(db, 'achats', auth.currentUser.uid, 'liste');
-      const snapshot = await getDocs(achatsRef);
-      const deletePromises = snapshot.docs.map(docSnap =>
-        deleteDoc(doc(db, 'achats', auth.currentUser.uid, 'liste', docSnap.id))
-      );
-      await Promise.all(deletePromises);
+      if (isOnline) {
+        const achatsRef = collection(db, 'achats', auth.currentUser.uid, 'liste');
+        const snapshot = await getDocs(achatsRef);
+        const deletePromises = snapshot.docs.map(docSnap =>
+          deleteDoc(doc(db, 'achats', auth.currentUser.uid, 'liste', docSnap.id))
+        );
+        await Promise.all(deletePromises);
+      }
       setAchats([]);
       localStorage.setItem('achats', JSON.stringify([]));
       setMessage(t('deleted'));

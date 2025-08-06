@@ -14,11 +14,23 @@ export default function Scan() {
   const [message, setMessage] = useState('');
   const [showFlash, setShowFlash] = useState(false);
   const [showListeOverlay, setShowListeOverlay] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
   const videoRef = useRef(null);
   const codeReaderRef = useRef(null);
   const swipeStartX = useRef(null);
   const db = getFirestore();
   const scanAttempts = useRef(0);
+
+  useEffect(() => {
+    const updateStatus = () => setIsOnline(navigator.onLine);
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+    return () => {
+      window.removeEventListener('online', updateStatus);
+      window.removeEventListener('offline', updateStatus);
+    };
+  }, []);
 
   useEffect(() => () => stopCamera(), []);
   useEffect(() => {
@@ -29,19 +41,9 @@ export default function Scan() {
   const startScan = async () => {
     try {
       codeReaderRef.current = new BrowserMultiFormatReader();
-
       const constraints = {
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          focusMode: 'continuous',
-          ...(navigator.mediaDevices && 'getUserMedia' in navigator.mediaDevices && {
-            advanced: [{ torch: true }]
-          })
-        }
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 }, focusMode: 'continuous' }
       };
-
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (videoRef.current) videoRef.current.srcObject = stream;
 
@@ -83,19 +85,22 @@ export default function Scan() {
       prix: Math.floor(Math.random() * 10) + 1,
       code
     };
-    const panier = loadLocalData('panier');
+    const panier = loadLocalData('panier') || [];
     const updated = [...panier, produit];
     saveLocalData('panier', updated);
 
     const user = auth.currentUser;
-    if (user) {
-      const ref = doc(db, 'paniers', user.uid);
-      const snap = await getDoc(ref);
-      const anciens = snap.exists() ? snap.data().articles || [] : [];
-      await setDoc(ref, { articles: [...anciens, produit] });
+    if (user && isOnline) {
+      try {
+        const ref = doc(db, 'paniers', user.uid);
+        const snap = await getDoc(ref);
+        const anciens = snap.exists() ? snap.data().articles || [] : [];
+        await setDoc(ref, { articles: [...anciens, produit] });
+      } catch (err) {
+        console.error('Erreur Firestore:', err);
+      }
     }
 
-    // Flash + vibration
     setShowFlash(true);
     try { navigator.vibrate?.(50); } catch {}
     setTimeout(() => setShowFlash(false), 200);

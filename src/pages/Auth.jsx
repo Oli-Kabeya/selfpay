@@ -5,7 +5,7 @@ import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
 
 export default function Auth() {
-  const [phone, setPhone] = useState('');
+  const [localNumber, setLocalNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [error, setError] = useState('');
@@ -38,20 +38,21 @@ export default function Auth() {
   const handleSendCode = async (e) => {
     e.preventDefault();
     setError('');
-    if (!phone.startsWith('+243')) {
-      setError(t('invalidPhone') || 'Le numéro doit commencer par +243...');
+
+    if (!localNumber.match(/^0\d{8}$/)) {
+      setError(t('invalidPhone') || 'Numéro incorrect. Exemple : 0812345678');
       return;
     }
     if (!isOnline) {
-      setError(t('noConnection') || 'Connexion internet requise pour envoyer le code.');
+      setError(t('noConnection') || 'Connexion internet requise.');
       return;
     }
 
     try {
       setLoading(true);
       setupRecaptcha();
-      const appVerifier = window.recaptchaVerifier;
-      const result = await signInWithPhoneNumber(auth, phone, appVerifier);
+      const formattedNumber = '+243' + localNumber.trim().replace(/^0/, '');
+      const result = await signInWithPhoneNumber(auth, formattedNumber, window.recaptchaVerifier);
       setConfirmationResult(result);
     } catch (err) {
       setError(t('sendCodeError') || "Erreur lors de l'envoi du code.");
@@ -92,29 +93,37 @@ export default function Auth() {
       )}
 
       <form onSubmit={confirmationResult ? handleVerifyOtp : handleSendCode} className="space-y-4 w-full max-w-sm">
-        <input
-          type="tel"
-          placeholder="+243..."
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-100 dark:bg-[#1E1E1E] text-gray-900 dark:text-[#F5F5F5]"
-          disabled={!!confirmationResult || loading}
-          autoFocus={!confirmationResult}
-        />
+        {/* CHAMP TELEPHONE AVEC +243 FIXE */}
+        <div className="relative w-full">
+          <span className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-600 dark:text-gray-400">+243</span>
+          <input
+            type="tel"
+            placeholder="812345678"
+            value={localNumber}
+            onChange={(e) => setLocalNumber(e.target.value)}
+            className="w-full pl-14 p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-100 dark:bg-[#1E1E1E] text-gray-900 dark:text-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            disabled={!!confirmationResult || loading}
+            autoFocus={!confirmationResult}
+          />
+        </div>
+
+        {/* OTP */}
         {confirmationResult && (
           <input
             type="text"
             placeholder={t('enterOtp') || 'Code reçu par SMS'}
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
-            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-100 dark:bg-[#1E1E1E] text-gray-900 dark:text-[#F5F5F5]"
+            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-100 dark:bg-[#1E1E1E] text-gray-900 dark:text-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-yellow-400"
             disabled={loading}
             autoFocus
           />
         )}
 
+        {/* ERREUR */}
         {error && <p className="text-red-500 text-sm">{error}</p>}
 
+        {/* BOUTON */}
         <button
           type="submit"
           className={`w-full p-3 rounded-xl text-white font-semibold bg-gradient-to-r from-[#FF5E3A] to-[#FFBA00] shadow ${

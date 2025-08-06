@@ -13,8 +13,12 @@ export default defineConfig({
       registerType: 'autoUpdate',
       devOptions: { enabled: true },
       includeAssets: [
-        'favicon.ico', 'robots.txt', 'logo.svg',
-        'icons/icon-192x192.png', 'icons/icon-512x512.png',
+        'favicon.ico',
+        'robots.txt',
+        'logo.svg',
+        'icons/icon-192x192.png',
+        'icons/icon-512x512.png',
+        'icons/logos-pwa.png', // ✅ ton logo ajouté ici
       ],
       manifest: {
         name: 'SelfPay',
@@ -28,6 +32,7 @@ export default defineConfig({
           { src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
           { src: '/logo.svg', sizes: '120x120', type: 'image/svg+xml', purpose: 'any maskable' },
+          { src: '/icons/logos-pwa.png', sizes: '256x256', type: 'image/png', purpose: 'any' }, // ✅ ajouté dans icons aussi
         ],
       },
       workbox: {

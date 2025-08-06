@@ -1,3 +1,4 @@
+// src/pages/Panier.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
@@ -11,32 +12,60 @@ import './Panier.css';
 export default function Panier() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [panier, setPanier] = useState(loadLocalData('panier'));
+  const [panier, setPanier] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCamera, setShowCamera] = useState(false);
   const [showListeOverlay, setShowListeOverlay] = useState(false);
   const [showFlash, setShowFlash] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
   const videoRef = useRef(null);
   const swipeStartX = useRef(null);
   const codeReaderRef = useRef(null);
   const db = getFirestore();
 
+  // 🔹 Détection connexion
   useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // 🔹 Charger localStorage, puis Firestore si online
+  useEffect(() => {
+    const local = loadLocalData('panier') || [];
+    setPanier(local);
+
     const chargerFirestore = async () => {
       const user = auth.currentUser;
-      if (user) {
-        const panierRef = doc(db, 'paniers', user.uid);
-        const docSnap = await getDoc(panierRef);
-        if (docSnap.exists()) {
-          const firestoreData = docSnap.data().articles || [];
-          setPanier(firestoreData);
-          saveLocalData('panier', firestoreData);
+      if (user && isOnline) {
+        try {
+          const panierRef = doc(db, 'paniers', user.uid);
+          const docSnap = await getDoc(panierRef);
+          if (docSnap.exists()) {
+            const firestoreData = docSnap.data().articles || [];
+            setPanier(firestoreData);
+            saveLocalData('panier', firestoreData);
+          }
+        } catch (err) {
+          console.error('Erreur Firestore:', err);
         }
       }
       setLoading(false);
     };
+
     chargerFirestore();
-  }, [db]);
+  }, [db, isOnline]);
+
+  // 🔹 Sauvegarde auto dans localStorage quand panier change
+  useEffect(() => {
+    saveLocalData('panier', panier);
+  }, [panier]);
 
   const total = panier.reduce((sum, item) => sum + (item.prix || 0), 0);
 
@@ -77,7 +106,7 @@ export default function Panier() {
     };
     startCamera();
     return () => stopCamera();
-  }, [showCamera]);
+  }, [showCamera, t]);
 
   const handleRemoveScan = async (code) => {
     const updated = panier.filter(item => item.code !== code);
@@ -85,12 +114,13 @@ export default function Panier() {
     saveLocalData('panier', updated);
 
     const user = auth.currentUser;
-    if (user) {
+    if (user && isOnline) {
       const ref = doc(db, 'paniers', user.uid);
       await setDoc(ref, { articles: updated }, { merge: true });
     }
   };
 
+  // 🔹 Swipe gauche => Liste courses
   useEffect(() => {
     const handleTouchStart = (e) => swipeStartX.current = e.touches[0].clientX;
     const handleTouchEnd = (e) => {
@@ -110,10 +140,15 @@ export default function Panier() {
       {showFlash && <div className="flash-overlay" />}
       <div className="panier-content scrollable-content">
         <h1 className="total-header">{t('total')}: {total.toFixed(2)} $</h1>
+
+        {!isOnline && (
+          <p className="offline-warning">{t('offlineCartNotice') || 'Mode hors-ligne. Données locales utilisées.'}</p>
+        )}
+
         {loading ? (
-          <p className="loading-text">{t('loadingCart')}</p>
+          <p className="loading-text">{t('loadingCart') || 'Chargement du panier...'}</p>
         ) : panier.length === 0 ? (
-          <p className="empty-text">{t('cartEmptyMessage')}</p>
+          <p className="empty-text">{t('cartEmptyMessage') || 'Votre panier est vide.'}</p>
         ) : (
           <ul className="product-list">
             {panier.map((item, idx) => (
@@ -131,23 +166,23 @@ export default function Panier() {
           <video ref={videoRef} className="camera-video" autoPlay muted playsInline />
           <div className="scan-overlay">
             <div className="scan-box">
-              <p className="scan-hint">{t('scanHint')}</p>
-              <p className="distance-advice">{t('distanceAdvice')}</p>
+              <p className="scan-hint">{t('scanHint') || 'Scanne un produit à retirer'}</p>
+              <p className="distance-advice">{t('distanceAdvice') || 'Place le code au centre'}</p>
             </div>
           </div>
           <button onClick={() => { stopCamera(); setShowCamera(false); }} className="close-camera-btn">
-            ✕ {t('closeCamera')}
+            ✕ {t('closeCamera') || 'Fermer caméra'}
           </button>
         </div>
       )}
 
       <div className="floating-button-row">
         <button className="button-base scan-btn" onClick={() => setShowCamera(true)}>
-          {t('removeScan')}
+          {t('removeScan') || 'Scanner pour retirer'}
         </button>
         {panier.length > 0 && (
           <button className="button-base validate-btn" onClick={() => navigate('/paiement')}>
-            {t('validatePurchase')}
+            {t('validatePurchase') || 'Valider l’achat'}
           </button>
         )}
       </div>
