@@ -65,8 +65,9 @@ export default function Scan() {
       try { codeReaderRef.current.reset(); } catch {}
       codeReaderRef.current = null;
     }
-    if (videoRef.current?.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+    const stream = videoRef.current?.srcObject;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
   };

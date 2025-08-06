@@ -1,4 +1,3 @@
-// src/pages/Panier.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
@@ -24,7 +23,6 @@ export default function Panier() {
   const codeReaderRef = useRef(null);
   const db = getFirestore();
 
-  // 🔹 Détection connexion
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -36,7 +34,6 @@ export default function Panier() {
     };
   }, []);
 
-  // 🔹 Charger localStorage, puis Firestore si online
   useEffect(() => {
     const local = loadLocalData('panier') || [];
     setPanier(local);
@@ -62,7 +59,6 @@ export default function Panier() {
     chargerFirestore();
   }, [db, isOnline]);
 
-  // 🔹 Sauvegarde auto dans localStorage quand panier change
   useEffect(() => {
     saveLocalData('panier', panier);
   }, [panier]);
@@ -120,7 +116,6 @@ export default function Panier() {
     }
   };
 
-  // 🔹 Swipe gauche => Liste courses
   useEffect(() => {
     const handleTouchStart = (e) => swipeStartX.current = e.touches[0].clientX;
     const handleTouchEnd = (e) => {
@@ -163,16 +158,12 @@ export default function Panier() {
 
       {showCamera && (
         <div className="camera-overlay">
-          <video ref={videoRef} className="camera-video" autoPlay muted playsInline />
-          <div className="scan-overlay">
-            <div className="scan-box">
-              <p className="scan-hint">{t('scanHint') || 'Scanne un produit à retirer'}</p>
-              <p className="distance-advice">{t('distanceAdvice') || 'Place le code au centre'}</p>
-            </div>
+          <div className="camera-container">
+            <video ref={videoRef} className="camera-video" autoPlay muted playsInline />
+            <button onClick={() => { stopCamera(); setShowCamera(false); }} className="close-camera-btn">
+              ✕ {t('closeCamera') || 'Fermer caméra'}
+            </button>
           </div>
-          <button onClick={() => { stopCamera(); setShowCamera(false); }} className="close-camera-btn">
-            ✕ {t('closeCamera') || 'Fermer caméra'}
-          </button>
         </div>
       )}
 

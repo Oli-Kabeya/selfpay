@@ -213,3 +213,22 @@
   margin-top: 8px;
 }
 
+.camera-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  width: 300px;
+  height: 300px;
+}
+
+.camera-video {
+  border-radius: 20px;
+  border: 2px solid var(--color-text);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
