@@ -99,10 +99,10 @@ export default function Auth() {
 
       <form onSubmit={confirmationResult ? handleVerifyOtp : handleSendCode} className="auth-form">
         <div className="auth-phone-input">
-          <span className="auth-country-code">+243</span>
+          <span className="auth-country-code">+243&nbsp;</span>
           <input
             type="tel"
-            placeholder="8123456789"
+            placeholder={t('numberConfig') || 'Commencer par 0'}
             value={localNumber}
             onChange={(e) => setLocalNumber(e.target.value)}
             disabled={!!confirmationResult || loading}

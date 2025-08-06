@@ -79,5 +79,6 @@
   "uncheck": "Décocher",
   "scanHint": "Cadrez bien le code-barres",
   "distanceAdvice": "Tenez le téléphone à bonne distance",
-  "cameraError": "Erreur caméra. Vérifiez les autorisations."
+  "cameraError": "Erreur caméra. Vérifiez les autorisations.",
+  "numberConfig": "Commencer par 0"
 }

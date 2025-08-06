@@ -78,5 +78,6 @@
     "chooseLanguage": "Choose language:",
   "scanHint": "Align the barcode inside the frame",
   "distanceAdvice": "Hold the phone at a proper distance",
-  "cameraError": "Camera error. Check permissions."
+  "cameraError": "Camera error. Check permissions.",
+  "numberConfig": "start with 0"
 }
