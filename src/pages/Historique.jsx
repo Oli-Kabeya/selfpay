@@ -16,6 +16,11 @@ export default function Historique() {
   useEffect(() => {
     const fetchAchats = async (user) => {
       try {
+        // Charger depuis localStorage d'abord
+        const localData = JSON.parse(localStorage.getItem('achats') || '[]');
+        setAchats(localData);
+        
+        // Puis tenter Firestore pour MAJ si en ligne
         const achatsRef = collection(db, 'achats', user.uid, 'liste');
         const snapshot = await getDocs(achatsRef);
         const listeAchats = snapshot.docs.map(doc => ({
@@ -28,9 +33,9 @@ export default function Historique() {
           return b.date.seconds - a.date.seconds;
         });
         setAchats(listeAchats);
+        localStorage.setItem('achats', JSON.stringify(listeAchats));
       } catch (err) {
         console.error(t('errorLoading'), err);
-        setAchats([]);
       } finally {
         setLoading(false);
       }
@@ -40,7 +45,9 @@ export default function Historique() {
       if (user) {
         fetchAchats(user);
       } else {
-        setAchats([]);
+        // Si déconnecté : charger localStorage
+        const localData = JSON.parse(localStorage.getItem('achats') || '[]');
+        setAchats(localData);
         setLoading(false);
       }
     });
@@ -62,6 +69,7 @@ export default function Historique() {
       );
       await Promise.all(deletePromises);
       setAchats([]);
+      localStorage.setItem('achats', JSON.stringify([]));
       setMessage(t('deleted'));
     } catch (err) {
       console.error(t('errorDelete'), err);
@@ -82,12 +90,11 @@ export default function Historique() {
   return (
     <div className="historique-page">
       <div className="historique-header">
-  <h1 className="text-xl font-bold mb-2">{t('title')}</h1>
-  <p className="text-base font-medium">
-    {t('totalSpent')}: {totalDepense.toFixed(2)} $
-  </p>
-</div>
-
+        <h1 className="text-xl font-bold mb-2">{t('title')}</h1>
+        <p className="text-base font-medium">
+          {t('totalSpent')}: {totalDepense.toFixed(2)} $
+        </p>
+      </div>
 
       {message && (
         <p className="mb-4 text-center text-green-600 dark:text-green-400">{message}</p>
@@ -95,19 +102,8 @@ export default function Historique() {
 
       {achats.length === 0 ? (
         <div className="empty-history">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="empty-icon"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M8 7V3m8 4V3m-9 9h10m-11 4h12m-12 4h12M4 21h16a1 1 0 001-1V7a1 1 0 00-1-1H4a1 1 0 00-1 1v13a1 1 0 001 1z"
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" className="empty-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 9h10m-11 4h12m-12 4h12M4 21h16a1 1 0 001-1V7a1 1 0 00-1-1H4a1 1 0 00-1 1v13a1 1 0 001 1z" />
           </svg>
           <p className="empty-text">{t('noPurchases')}</p>
         </div>

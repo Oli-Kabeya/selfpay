@@ -170,3 +170,40 @@
   pointer-events: none;
   z-index: 9999;
 }
+
+.flash-screen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 255, 0, 0.3);
+  z-index: 9999;
+  animation: flash 0.2s ease-out;
+}
+
+@keyframes flash {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.scan-frame {
+  position: absolute;
+  top: 20%;
+  left: 10%;
+  width: 80%;
+  height: 60%;
+  border: 2px dashed #00FF00;
+  border-radius: 8px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.scan-hint {
+  position: absolute;
+  bottom: 20px;
+  width: 100%;
+  text-align: center;
+  color: white;
+  font-weight: bold;
+  z-index: 11;
+  text-shadow: 0 0 5px black;
+}
+

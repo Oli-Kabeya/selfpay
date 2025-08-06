@@ -5,68 +5,40 @@ import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import ListeOverlay from '../components/ListeOverlay';
 import { useTranslation } from 'react-i18next';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { loadLocalData, saveLocalData } from '../utils/offlineUtils';
 import './Panier.css';
 
 export default function Panier() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [panier, setPanier] = useState([]);
+  const [panier, setPanier] = useState(loadLocalData('panier'));
   const [loading, setLoading] = useState(true);
   const [showCamera, setShowCamera] = useState(false);
   const [showListeOverlay, setShowListeOverlay] = useState(false);
+  const [showFlash, setShowFlash] = useState(false);
   const videoRef = useRef(null);
   const swipeStartX = useRef(null);
   const codeReaderRef = useRef(null);
   const db = getFirestore();
 
-  // Charger panier Firestore
   useEffect(() => {
-    const chargerPanier = async () => {
+    const chargerFirestore = async () => {
       const user = auth.currentUser;
       if (user) {
         const panierRef = doc(db, 'paniers', user.uid);
         const docSnap = await getDoc(panierRef);
-        const data = docSnap.exists() ? docSnap.data().articles || [] : [];
-        setPanier(data);
-      } else {
-        setPanier([]);
+        if (docSnap.exists()) {
+          const firestoreData = docSnap.data().articles || [];
+          setPanier(firestoreData);
+          saveLocalData('panier', firestoreData);
+        }
       }
       setLoading(false);
     };
-    chargerPanier();
+    chargerFirestore();
   }, [db]);
 
   const total = panier.reduce((sum, item) => sum + (item.prix || 0), 0);
-
-  // Gestion caméra suppression produit
-  useEffect(() => {
-    if (!showCamera) {
-      stopCamera();
-      return;
-    }
-
-    const startCamera = async () => {
-      try {
-        codeReaderRef.current = new BrowserMultiFormatReader();
-        await codeReaderRef.current.decodeOnceFromVideoDevice(undefined, videoRef.current)
-          .then(async (result) => {
-            const code = result.getText();
-            await handleRemoveScan(code);
-            stopCamera(); // ✅ Stop caméra après scan
-            setShowCamera(false);
-          });
-      } catch (err) {
-        console.error('Erreur caméra :', err);
-        stopCamera();
-        setShowCamera(false);
-        alert(t('cameraError') || 'Erreur caméra. Vérifiez les permissions.');
-      }
-    };
-
-    startCamera();
-
-    return () => stopCamera();
-  }, [showCamera]);
 
   const stopCamera = () => {
     if (codeReaderRef.current) {
@@ -79,29 +51,52 @@ export default function Panier() {
     }
   };
 
-  const handleRemoveScan = async (scannedCode) => {
-    const updatedPanier = panier.filter(item => item.code !== scannedCode);
-    setPanier(updatedPanier);
-    localStorage.setItem('panier', JSON.stringify(updatedPanier));
+  useEffect(() => {
+    if (!showCamera) {
+      stopCamera();
+      return;
+    }
+    const startCamera = async () => {
+      try {
+        codeReaderRef.current = new BrowserMultiFormatReader();
+        await codeReaderRef.current.decodeOnceFromVideoDevice(undefined, videoRef.current)
+          .then(async (result) => {
+            const code = result.getText();
+            await handleRemoveScan(code);
+            setShowFlash(true);
+            setTimeout(() => setShowFlash(false), 200);
+            stopCamera();
+            setShowCamera(false);
+          });
+      } catch (err) {
+        console.error('Erreur caméra :', err);
+        stopCamera();
+        setShowCamera(false);
+        alert(t('cameraError') || 'Erreur caméra');
+      }
+    };
+    startCamera();
+    return () => stopCamera();
+  }, [showCamera]);
+
+  const handleRemoveScan = async (code) => {
+    const updated = panier.filter(item => item.code !== code);
+    setPanier(updated);
+    saveLocalData('panier', updated);
 
     const user = auth.currentUser;
     if (user) {
-      const panierRef = doc(db, 'paniers', user.uid);
-      await setDoc(panierRef, { articles: updatedPanier }, { merge: true });
+      const ref = doc(db, 'paniers', user.uid);
+      await setDoc(ref, { articles: updated }, { merge: true });
     }
   };
 
-  // Swipe gauche => ouvre ListeOverlay
   useEffect(() => {
-    const handleTouchStart = (e) => {
-      swipeStartX.current = e.touches[0].clientX;
-    };
+    const handleTouchStart = (e) => swipeStartX.current = e.touches[0].clientX;
     const handleTouchEnd = (e) => {
-      const swipeEndX = e.changedTouches[0].clientX;
-      const deltaX = swipeEndX - swipeStartX.current;
+      const deltaX = e.changedTouches[0].clientX - swipeStartX.current;
       if (deltaX < -50) setShowListeOverlay(true);
     };
-
     window.addEventListener('touchstart', handleTouchStart);
     window.addEventListener('touchend', handleTouchEnd);
     return () => {
@@ -112,11 +107,9 @@ export default function Panier() {
 
   return (
     <div className="panier-page relative">
+      {showFlash && <div className="flash-overlay" />}
       <div className="panier-content scrollable-content">
-        <h1 className="total-header">
-          {t('total')}: {total.toFixed(2)} $
-        </h1>
-
+        <h1 className="total-header">{t('total')}: {total.toFixed(2)} $</h1>
         {loading ? (
           <p className="loading-text">{t('loadingCart')}</p>
         ) : panier.length === 0 ? (
@@ -133,35 +126,27 @@ export default function Panier() {
         )}
       </div>
 
-      {/* CameraView suppression produit */}
       {showCamera && (
         <div className="camera-overlay">
           <video ref={videoRef} className="camera-video" autoPlay muted playsInline />
-          <button
-            className="close-camera-btn"
-            onClick={() => {
-              stopCamera();
-              setShowCamera(false);
-            }}
-          >
+          <div className="scan-overlay">
+            <div className="scan-box">
+              <p className="scan-hint">{t('scanHint')}</p>
+              <p className="distance-advice">{t('distanceAdvice')}</p>
+            </div>
+          </div>
+          <button onClick={() => { stopCamera(); setShowCamera(false); }} className="close-camera-btn">
             ✕ {t('closeCamera')}
           </button>
         </div>
       )}
 
       <div className="floating-button-row">
-        <button
-          className="button-base scan-btn"
-          onClick={() => setShowCamera(true)}
-        >
+        <button className="button-base scan-btn" onClick={() => setShowCamera(true)}>
           {t('removeScan')}
         </button>
-
         {panier.length > 0 && (
-          <button
-            className="button-base validate-btn"
-            onClick={() => navigate('/paiement')}
-          >
+          <button className="button-base validate-btn" onClick={() => navigate('/paiement')}>
             {t('validatePurchase')}
           </button>
         )}

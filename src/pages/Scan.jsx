@@ -5,6 +5,7 @@ import { auth } from '../firebase';
 import ListeOverlay from '../components/ListeOverlay';
 import { useTranslation } from 'react-i18next';
 import { X, Barcode } from 'lucide-react';
+import { loadLocalData, saveLocalData } from '../utils/offlineUtils';
 import './Scan.css';
 
 export default function Scan() {
@@ -17,30 +18,49 @@ export default function Scan() {
   const codeReaderRef = useRef(null);
   const swipeStartX = useRef(null);
   const db = getFirestore();
+  const scanAttempts = useRef(0);
 
-  // Stop caméra si Scan se démonte
+  useEffect(() => () => stopCamera(), []);
   useEffect(() => {
-    return () => stopCamera();
-  }, []);
-
-  useEffect(() => {
-    if (scanning) {
-      startScan();
-    } else {
-      stopCamera();
-    }
+    if (scanning) startScan();
+    else stopCamera();
   }, [scanning]);
 
   const startScan = async () => {
     try {
       codeReaderRef.current = new BrowserMultiFormatReader();
-      await codeReaderRef.current.decodeOnceFromVideoDevice(undefined, videoRef.current)
-        .then(result => {
-          ajouterProduit(result.getText());
-        });
+
+      const constraints = {
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          focusMode: 'continuous',
+          ...(navigator.mediaDevices && 'getUserMedia' in navigator.mediaDevices && {
+            advanced: [{ torch: true }]
+          })
+        }
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (videoRef.current) videoRef.current.srcObject = stream;
+
+      await codeReaderRef.current.decodeFromVideoDevice(null, videoRef.current, async (result, err) => {
+        if (result) {
+          codeReaderRef.current.reset();
+          await ajouterProduit(result.getText());
+        } else if (err) {
+          scanAttempts.current++;
+          if (scanAttempts.current >= 3) {
+            setMessage(t('distanceAdvice'));
+            setTimeout(() => setMessage(''), 2500);
+            scanAttempts.current = 0;
+          }
+        }
+      });
     } catch (error) {
-      console.error('Erreur scan:', error);
-      setMessage(t('scanError'));
+      console.error('Erreur caméra:', error);
+      setMessage(t('cameraError'));
       setTimeout(() => setMessage(''), 2000);
       handleCloseCamera();
     }
@@ -48,17 +68,11 @@ export default function Scan() {
 
   const stopCamera = () => {
     if (codeReaderRef.current) {
-      try {
-        codeReaderRef.current.reset();
-      } catch (err) {
-        console.warn('Erreur reset codeReader:', err);
-      }
+      try { codeReaderRef.current.reset(); } catch {}
       codeReaderRef.current = null;
     }
     if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject;
-      const tracks = stream.getTracks();
-      tracks.forEach(track => track.stop());
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
   };
@@ -69,8 +83,9 @@ export default function Scan() {
       prix: Math.floor(Math.random() * 10) + 1,
       code
     };
-    const panier = JSON.parse(localStorage.getItem('panier') || '[]');
-    localStorage.setItem('panier', JSON.stringify([...panier, produit]));
+    const panier = loadLocalData('panier');
+    const updated = [...panier, produit];
+    saveLocalData('panier', updated);
 
     const user = auth.currentUser;
     if (user) {
@@ -80,11 +95,14 @@ export default function Scan() {
       await setDoc(ref, { articles: [...anciens, produit] });
     }
 
+    // Flash + vibration
     setShowFlash(true);
+    try { navigator.vibrate?.(50); } catch {}
     setTimeout(() => setShowFlash(false), 200);
+
     setMessage(`${t('added')}: ${produit.nom}`);
     setScanning(false);
-    stopCamera(); // ✅ Fermeture explicite de la caméra
+    stopCamera();
   };
 
   const handleCloseCamera = () => {
@@ -93,17 +111,12 @@ export default function Scan() {
     setMessage('');
   };
 
-  // Swipe gauche => ouvre ListeOverlay
   useEffect(() => {
-    const handleTouchStart = (e) => {
-      swipeStartX.current = e.touches[0].clientX;
-    };
+    const handleTouchStart = (e) => swipeStartX.current = e.touches[0].clientX;
     const handleTouchEnd = (e) => {
-      const swipeEndX = e.changedTouches[0].clientX;
-      const deltaX = swipeEndX - swipeStartX.current;
+      const deltaX = e.changedTouches[0].clientX - swipeStartX.current;
       if (deltaX < -50) setShowListeOverlay(true);
     };
-
     window.addEventListener('touchstart', handleTouchStart);
     window.addEventListener('touchend', handleTouchEnd);
     return () => {
@@ -115,46 +128,23 @@ export default function Scan() {
   return (
     <div className="scan-page">
       {showFlash && <div className="flash-screen" />}
-
       <h1 className="app-title">SelfPay</h1>
       <p className="scan-subtitle">{t('tapToAddProduct')}</p>
-
       {!scanning ? (
-        <div
-          className="scan-button-container"
-          onClick={() => setScanning(true)}
-          role="button"
-          tabIndex={0}
-          aria-label={t('startScan')}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') setScanning(true);
-          }}
-        >
-          <div className="scan-button">
-            <Barcode size={40} />
-          </div>
+        <div className="scan-button-container" onClick={() => setScanning(true)} role="button" tabIndex={0}>
+          <div className="scan-button"><Barcode size={40} /></div>
         </div>
       ) : (
         <div className="camera-container">
-          <video
-            ref={videoRef}
-            muted
-            autoPlay
-            playsInline
-            className="camera-video"
-          />
-          <button
-            onClick={handleCloseCamera}
-            className="camera-button camera-close"
-            aria-label={t('closeCamera')}
-          >
+          <video ref={videoRef} muted autoPlay playsInline className="camera-video" />
+          <div className="scan-frame" />
+          <p className="scan-hint">{t('scanHint')}</p>
+          <button onClick={handleCloseCamera} className="camera-button camera-close">
             <X size={16} /> {t('closeCamera')}
           </button>
         </div>
       )}
-
       {message && <p className="message">{message}</p>}
-
       {showListeOverlay && <ListeOverlay onClose={() => setShowListeOverlay(false)} />}
     </div>
   );

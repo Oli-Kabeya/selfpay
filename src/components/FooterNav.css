@@ -43,11 +43,10 @@
 
 .nav-item.active-nav {
   color: var(--color-primary, #ff6b00);
-  text-shadow: 0 0 6px rgba(255, 107, 0, 0.8);
-  filter: drop-shadow(0 0 4px rgba(255, 136, 0, 0.8));
+  /* suppression text-shadow et flou */
 }
 
 .nav-item.active-nav svg {
   stroke: var(--color-primary, #ff6b00);
-  filter: drop-shadow(0 0 4px rgba(255, 136, 0, 0.8));
+  /* suppression drop-shadow et flou */
 }

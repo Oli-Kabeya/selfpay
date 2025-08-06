@@ -75,5 +75,8 @@
     "payNow": "Pay now",
     "tapToAddProduct": "Tap to add a product",
     "phone": "Phone",
-    "chooseLanguage": "Choose language:"
+    "chooseLanguage": "Choose language:",
+  "scanHint": "Align the barcode inside the frame",
+  "distanceAdvice": "Hold the phone at a proper distance",
+  "cameraError": "Camera error. Check permissions."
 }

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { useTranslation } from 'react-i18next';
 
 export default function Auth() {
   const [phone, setPhone] = useState('');
@@ -9,8 +10,21 @@ export default function Auth() {
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
+  const { t } = useTranslation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const setupRecaptcha = () => {
     if (!window.recaptchaVerifier) {
@@ -25,7 +39,11 @@ export default function Auth() {
     e.preventDefault();
     setError('');
     if (!phone.startsWith('+243')) {
-      setError('Le numéro doit commencer par +243...');
+      setError(t('invalidPhone') || 'Le numéro doit commencer par +243...');
+      return;
+    }
+    if (!isOnline) {
+      setError(t('noConnection') || 'Connexion internet requise pour envoyer le code.');
       return;
     }
 
@@ -36,7 +54,7 @@ export default function Auth() {
       const result = await signInWithPhoneNumber(auth, phone, appVerifier);
       setConfirmationResult(result);
     } catch (err) {
-      setError("Erreur lors de l'envoi du code. Vérifie le numéro.");
+      setError(t('sendCodeError') || "Erreur lors de l'envoi du code.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -46,13 +64,17 @@ export default function Auth() {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setError('');
+    if (!isOnline) {
+      setError(t('noConnection') || 'Connexion requise pour valider le code.');
+      return;
+    }
     try {
       setLoading(true);
       await confirmationResult.confirm(otp);
-      alert('Connexion réussie ✅');
+      alert(t('loginSuccess') || 'Connexion réussie ✅');
       navigate('/scan');
     } catch (err) {
-      setError('Code incorrect. Réessaie.');
+      setError(t('wrongCode') || 'Code incorrect. Réessaie.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -62,6 +84,12 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-white dark:bg-[#121212] px-4 page-transition">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-[#F5F5F5] mb-8">SelfPay</h1>
+
+      {!isOnline && (
+        <div className="text-center mb-4 text-red-600 dark:text-red-400 text-sm font-medium">
+          {t('offlineWarning') || 'Pas de connexion internet. Connexion impossible.'}
+        </div>
+      )}
 
       <form onSubmit={confirmationResult ? handleVerifyOtp : handleSendCode} className="space-y-4 w-full max-w-sm">
         <input
@@ -76,7 +104,7 @@ export default function Auth() {
         {confirmationResult && (
           <input
             type="text"
-            placeholder="Code reçu par SMS"
+            placeholder={t('enterOtp') || 'Code reçu par SMS'}
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
             className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-100 dark:bg-[#1E1E1E] text-gray-900 dark:text-[#F5F5F5]"
@@ -90,16 +118,16 @@ export default function Auth() {
         <button
           type="submit"
           className={`w-full p-3 rounded-xl text-white font-semibold bg-gradient-to-r from-[#FF5E3A] to-[#FFBA00] shadow ${
-            loading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
+            loading || !isOnline ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
           }`}
-          disabled={loading}
+          disabled={loading || !isOnline}
         >
           {loading ? (
             <div className="flex items-center justify-center">
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              Patiente...
+              {t('pleaseWait') || 'Patiente...'}
             </div>
-          ) : confirmationResult ? 'Vérifier le code' : 'Envoyer le code'}
+          ) : confirmationResult ? t('verifyCode') || 'Vérifier le code' : t('sendCode') || 'Envoyer le code'}
         </button>
       </form>
 

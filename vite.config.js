@@ -7,12 +7,15 @@ export default defineConfig({
   base: '/',
   plugins: [
     react({
-      jsxRuntime: 'automatic', // ✅ pour React 18
+      jsxRuntime: 'automatic',
     }),
     VitePWA({
       registerType: 'autoUpdate',
       devOptions: { enabled: true },
-      includeAssets: ['logo.svg', 'icons/icon-192x192.png', 'icons/icon-512x512.png'],
+      includeAssets: [
+        'favicon.ico', 'robots.txt', 'logo.svg',
+        'icons/icon-192x192.png', 'icons/icon-512x512.png',
+      ],
       manifest: {
         name: 'SelfPay',
         short_name: 'SelfPay',
@@ -27,6 +30,42 @@ export default defineConfig({
           { src: '/logo.svg', sizes: '120x120', type: 'image/svg+xml', purpose: 'any maskable' },
         ],
       },
+      workbox: {
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-stylesheets',
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-webfonts',
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'firestore-data',
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 30 },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/selfpay-olivier\.web\.app\/.*/i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'selfpay-static',
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 7 },
+            },
+          },
+        ],
+      },
     }),
   ],
   resolve: {
@@ -35,24 +74,13 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      '@zxing/library',
-      'lucide-react',     // ✅ ajouté pour éviter erreur build
-    ],
+    include: ['react', 'react-dom', '@zxing/library', 'lucide-react'],
   },
   cacheDir: '.vite_cache',
   build: {
     rollupOptions: {
-      external: [],
-      // Résout problème de modules ESM comme lucide-react
-      output: {
-        manualChunks: undefined, // évite erreurs de split inutile
-      },
+      output: { manualChunks: undefined },
     },
-    commonjsOptions: {
-      include: [/node_modules/], // ✅ important pour modules CommonJS
-    },
+    commonjsOptions: { include: [/node_modules/] },
   },
 });

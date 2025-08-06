@@ -16,9 +16,12 @@ export default function Profile({ theme, setTheme }) {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setPhone(user.phoneNumber);
+        localStorage.setItem('userPhone', user.phoneNumber);
         setLoading(false);
       } else {
-        navigate('/');
+        const savedPhone = localStorage.getItem('userPhone') || '';
+        setPhone(savedPhone);
+        setLoading(false);
       }
     });
     return () => unsubscribe();
@@ -93,7 +96,7 @@ export default function Profile({ theme, setTheme }) {
           >
             <option value="fr">Français</option>
             <option value="en">English</option>
-            <option value="ln">Lingala</option> {/* Ajouté ici */}
+            <option value="ln">Lingala</option>
           </select>
         </div>
 

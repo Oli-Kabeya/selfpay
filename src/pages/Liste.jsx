@@ -24,20 +24,25 @@ export default function Liste() {
         navigate('/auth');
         return;
       }
+
+      // Charger depuis localStorage d'abord
+      const localItems = JSON.parse(localStorage.getItem('liste_courses') || '[]');
+      setItems(localItems);
+
       try {
         const docRef = doc(db, 'listes_courses', user.uid);
         const docSnap = await getDoc(docRef);
-
         if (docSnap.exists()) {
           const data = docSnap.data();
           const allItems = data.items || [];
           setItems(allItems);
+          localStorage.setItem('liste_courses', JSON.stringify(allItems));
         } else {
           setItems([]);
         }
       } catch (error) {
         console.error('Erreur lors du chargement de la liste :', error);
-        setItems([]);
+        setItems(localItems); // fallback
       } finally {
         setLoading(false);
       }
@@ -52,6 +57,7 @@ export default function Liste() {
     try {
       const docRef = doc(db, 'listes_courses', user.uid);
       await setDoc(docRef, { items: newItems }, { merge: true });
+      localStorage.setItem('liste_courses', JSON.stringify(newItems));
     } catch (error) {
       console.error('Erreur Firestore :', error);
     }
@@ -75,10 +81,7 @@ export default function Liste() {
     const confirmed = window.confirm(t('confirmDeleteAll') || 'Supprimer toute la liste ?');
     if (!confirmed) return;
     setItems([]);
-    const user = auth.currentUser;
-    if (!user) return;
-    const docRef = doc(db, 'listes_courses', user.uid);
-    await setDoc(docRef, { items: [] }, { merge: true });
+    await updateFirestoreList([]);
   };
 
   const addItem = async () => {
@@ -164,7 +167,7 @@ export default function Liste() {
                       autoFocus
                       className="edit-input"
                       inputMode="text"
-                      style={{ fontSize: '16px' }} // Pour éviter le zoom mobile
+                      style={{ fontSize: '16px' }} // Pour éviter zoom mobile
                     />
                     <button onClick={() => saveEditing(id)} className="save-btn" aria-label={t('save')}>✓</button>
                     <button onClick={cancelEditing} className="cancel-btn" aria-label={t('cancel')}>✗</button>

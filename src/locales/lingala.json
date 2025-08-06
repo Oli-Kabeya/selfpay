@@ -82,5 +82,8 @@
   "deleteAll": "Longola tout",
   "confirmDeleteAll": "Longola tout na liste ?",
   "check": "Ponga",
-  "uncheck": "Kolongola pongi"
+  "uncheck": "Kolongola pongi",
+  "scanHint": "Sambisa code-barres na kati ya cadre",
+  "distanceAdvice": "Kanga telefone na esika ya malamu",
+  "cameraError": "Erreur ya kamera. Tala soki ndenge ya kobatela ezali."
 }

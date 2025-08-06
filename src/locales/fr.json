@@ -76,5 +76,8 @@
   "deleteAll": "Tout supprimer",
   "confirmDeleteAll": "Confirmer la suppression de toute la liste ?",
   "check": "Cocher",
-  "uncheck": "Décocher"
+  "uncheck": "Décocher",
+  "scanHint": "Cadrez bien le code-barres",
+  "distanceAdvice": "Tenez le téléphone à bonne distance",
+  "cameraError": "Erreur caméra. Vérifiez les autorisations."
 }

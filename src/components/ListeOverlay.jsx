@@ -4,6 +4,7 @@ import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import './ListeOverlay.css';
+import { loadListeFromStorage, saveListeToStorage } from '../utils/offlineUtils';
 
 export default function ListeOverlay({ onClose }) {
   const { t } = useTranslation();
@@ -11,33 +12,36 @@ export default function ListeOverlay({ onClose }) {
   const db = getFirestore();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const overlayRef = useRef(null);
 
   useEffect(() => {
     const fetchList = async () => {
+      const localData = loadListeFromStorage();
+      setItems(localData);
+      setLoading(false);
+
       const user = auth.currentUser;
       if (!user) return;
+
       try {
         const docRef = doc(db, 'listes_courses', user.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setItems(data.items || []);
-        } else {
-          setItems([]);
+          const firestoreItems = data.items || [];
+          setItems(firestoreItems);
+          saveListeToStorage(firestoreItems);
         }
       } catch (error) {
         console.error('Erreur de chargement:', error);
-        setItems([]);
-      } finally {
-        setLoading(false);
       }
     };
     fetchList();
   }, [db]);
 
   const updateFirestoreList = async (newItems) => {
+    setItems(newItems);
+    saveListeToStorage(newItems);
     const user = auth.currentUser;
     if (!user) return;
     try {
@@ -52,24 +56,19 @@ export default function ListeOverlay({ onClose }) {
     const updatedItems = items.map(item =>
       item.id === id ? { ...item, checked: !item.checked } : item
     );
-    setItems(updatedItems);
     await updateFirestoreList(updatedItems);
   };
 
   const touchStartX = useRef(null);
-  const handleTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
+  const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
   const handleTouchEnd = (e) => {
-    const touchEndX = e.changedTouches[0].clientX;
-    const deltaX = touchEndX - touchStartX.current;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
     if (deltaX > 50) onClose();
   };
 
   return (
     <div className="liste-overlay-container">
       <div className="overlay-backdrop" onClick={onClose} aria-hidden="true" />
-
       <aside
         ref={overlayRef}
         className="liste-overlay-panel"
@@ -79,14 +78,19 @@ export default function ListeOverlay({ onClose }) {
         <div className="liste-overlay-header">
           <h2>{t('shoppingList')}</h2>
         </div>
-
         <div className="liste-overlay-content">
           {loading ? (
             <p>{t('loading')}</p>
           ) : items.length === 0 ? (
             <div className="empty-overlay">
               <p>{t('emptyShoppingList')}</p>
-              <button onClick={() => navigate('/liste')} className="go-to-liste-btn">
+              <button
+                onClick={() => {
+                  onClose();
+                  setTimeout(() => navigate('/liste'), 50);
+                }}
+                className="go-to-liste-btn"
+              >
                 {t('addNewItem')}
               </button>
             </div>
