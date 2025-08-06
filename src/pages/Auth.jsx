@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
+import './Auth.css';
 
 export default function Auth() {
   const [localNumber, setLocalNumber] = useState('');
@@ -39,10 +40,14 @@ export default function Auth() {
     e.preventDefault();
     setError('');
 
-    if (!localNumber.match(/^0\d{8}$/)) {
+    // Nettoyer le numéro (supprimer tout sauf chiffres)
+    const cleanNumber = localNumber.replace(/[^0-9]/g, '');
+    // Validation RDC : 10 chiffres, doit commencer par 0
+    if (!/^0\d{9}$/.test(cleanNumber)) {
       setError(t('invalidPhone') || 'Numéro incorrect. Exemple : 0812345678');
       return;
     }
+
     if (!isOnline) {
       setError(t('noConnection') || 'Connexion internet requise.');
       return;
@@ -51,7 +56,7 @@ export default function Auth() {
     try {
       setLoading(true);
       setupRecaptcha();
-      const formattedNumber = '+243' + localNumber.trim().replace(/^0/, '');
+      const formattedNumber = '+243' + cleanNumber.slice(1); // Retirer le 0
       const result = await signInWithPhoneNumber(auth, formattedNumber, window.recaptchaVerifier);
       setConfirmationResult(result);
     } catch (err) {
@@ -83,57 +88,50 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-white dark:bg-[#121212] px-4 page-transition">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-[#F5F5F5] mb-8">SelfPay</h1>
+    <div className="auth-container">
+      <h1 className="auth-title">SelfPay</h1>
 
       {!isOnline && (
-        <div className="text-center mb-4 text-red-600 dark:text-red-400 text-sm font-medium">
+        <div className="auth-offline-warning">
           {t('offlineWarning') || 'Pas de connexion internet. Connexion impossible.'}
         </div>
       )}
 
-      <form onSubmit={confirmationResult ? handleVerifyOtp : handleSendCode} className="space-y-4 w-full max-w-sm">
-        {/* CHAMP TELEPHONE AVEC +243 FIXE */}
-        <div className="relative w-full">
-          <span className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-600 dark:text-gray-400">+243</span>
+      <form onSubmit={confirmationResult ? handleVerifyOtp : handleSendCode} className="auth-form">
+        <div className="auth-phone-input">
+          <span className="auth-country-code">+243</span>
           <input
             type="tel"
-            placeholder="812345678"
+            placeholder="8123456789"
             value={localNumber}
             onChange={(e) => setLocalNumber(e.target.value)}
-            className="w-full pl-14 p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-100 dark:bg-[#1E1E1E] text-gray-900 dark:text-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-yellow-400"
             disabled={!!confirmationResult || loading}
             autoFocus={!confirmationResult}
           />
         </div>
 
-        {/* OTP */}
         {confirmationResult && (
           <input
             type="text"
             placeholder={t('enterOtp') || 'Code reçu par SMS'}
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
-            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-100 dark:bg-[#1E1E1E] text-gray-900 dark:text-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            className="auth-otp-input"
             disabled={loading}
             autoFocus
           />
         )}
 
-        {/* ERREUR */}
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && <p className="auth-error">{error}</p>}
 
-        {/* BOUTON */}
         <button
           type="submit"
-          className={`w-full p-3 rounded-xl text-white font-semibold bg-gradient-to-r from-[#FF5E3A] to-[#FFBA00] shadow ${
-            loading || !isOnline ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
-          }`}
+          className={`auth-button ${loading || !isOnline ? 'disabled' : ''}`}
           disabled={loading || !isOnline}
         >
           {loading ? (
-            <div className="flex items-center justify-center">
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+            <div className="auth-spinner">
+              <div className="spinner"></div>
               {t('pleaseWait') || 'Patiente...'}
             </div>
           ) : confirmationResult ? t('verifyCode') || 'Vérifier le code' : t('sendCode') || 'Envoyer le code'}
