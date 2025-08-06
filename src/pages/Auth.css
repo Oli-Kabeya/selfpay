@@ -146,3 +146,15 @@ body.dark {
   background-color: var(--bg-color);
   color: var(--text-color);
 }
+
+.auth-phone-input input,
+.auth-otp-input {
+  font-size: 16px; /* MINIMUM pour éviter zoom mobile */
+}
+
+.auth-container {
+  min-height: 100vh;
+  height: 100vh; /* force hauteur fixe */
+  overflow: hidden; /* évite scroll au focus */
+}
+
