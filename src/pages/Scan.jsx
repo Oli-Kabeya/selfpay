@@ -1,3 +1,4 @@
+// src/pages/Scan.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
@@ -46,9 +47,9 @@ export default function Scan() {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (videoRef.current) videoRef.current.srcObject = stream;
 
-      await codeReaderRef.current.decodeFromVideoDevice(null, videoRef.current, async (result, err) => {
+      await codeReaderRef.current.decodeFromVideoDevice(null, videoRef.current, async (result) => {
         if (result) {
-          codeReaderRef.current.reset();
+          stopCamera(); // Arrêt immédiat après scan
           await ajouterProduit(result.getText());
         }
       });
@@ -100,7 +101,6 @@ export default function Scan() {
 
     setMessage(`${t('added')}: ${produit.nom}`);
     setScanning(false);
-    stopCamera();
   };
 
   const handleCloseCamera = () => {

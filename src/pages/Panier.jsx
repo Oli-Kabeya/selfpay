@@ -1,3 +1,4 @@
+// src/pages/Panier.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
@@ -70,8 +71,9 @@ export default function Panier() {
       try { codeReaderRef.current.reset(); } catch {}
       codeReaderRef.current = null;
     }
-    if (videoRef.current?.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+    const stream = videoRef.current?.srcObject;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
   };
@@ -86,11 +88,11 @@ export default function Panier() {
         codeReaderRef.current = new BrowserMultiFormatReader();
         await codeReaderRef.current.decodeOnceFromVideoDevice(undefined, videoRef.current)
           .then(async (result) => {
+            stopCamera(); // arrêt immédiat
             const code = result.getText();
             await handleRemoveScan(code);
             setShowFlash(true);
             setTimeout(() => setShowFlash(false), 200);
-            stopCamera();
             setShowCamera(false);
           });
       } catch (err) {
