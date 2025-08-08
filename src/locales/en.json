@@ -1,5 +1,6 @@
 {
   "welcome": "Welcome",
+  "offlineCartNotice": "Offline mode. Using local data.",
   "profile": "Profile",
    "paymentMethods": "Payment Methods",
   "managePayments": "Configure / Manage",
@@ -79,5 +80,9 @@
   "scanHint": "Align the barcode inside the frame",
   "distanceAdvice": "Hold the phone at a proper distance",
   "cameraError": "Camera error. Check permissions.",
-  "numberConfig": "start with 0"
+  "numberConfig": "start with 0",
+  "productAdded": "Product added",
+  "manualEntryPrompt": "No code detected. Enter the barcode manually:",
+  "enterBarcode": "Enter barcode",
+  "validate": "Validate"
 }

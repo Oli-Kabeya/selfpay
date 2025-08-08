@@ -1,4 +1,3 @@
-// src/pages/Scan.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
@@ -9,18 +8,27 @@ import { X, Barcode } from 'lucide-react';
 import { loadLocalData, saveLocalData } from '../utils/offlineUtils';
 import './Scan.css';
 
+// Ajoute produit localement dans le panier
+const addProductOffline = (produit) => {
+  const panier = loadLocalData('panier') || [];
+  const updated = [...panier, produit];
+  saveLocalData('panier', updated);
+};
+
 export default function Scan() {
   const { t } = useTranslation();
   const [scanning, setScanning] = useState(false);
   const [message, setMessage] = useState('');
-  const [showFlash, setShowFlash] = useState(false);
   const [showListeOverlay, setShowListeOverlay] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [manualEntry, setManualEntry] = useState(false);
+  const [manualCode, setManualCode] = useState('');
 
   const videoRef = useRef(null);
   const codeReaderRef = useRef(null);
   const swipeStartX = useRef(null);
   const db = getFirestore();
+  const timeoutRef = useRef(null);
 
   useEffect(() => {
     const updateStatus = () => setIsOnline(navigator.onLine);
@@ -33,6 +41,7 @@ export default function Scan() {
   }, []);
 
   useEffect(() => () => stopCamera(), []);
+
   useEffect(() => {
     if (scanning) startScan();
     else stopCamera();
@@ -40,6 +49,7 @@ export default function Scan() {
 
   const startScan = async () => {
     try {
+      setManualEntry(false);
       codeReaderRef.current = new BrowserMultiFormatReader();
       const constraints = {
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 }, focusMode: 'continuous' }
@@ -47,9 +57,15 @@ export default function Scan() {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (videoRef.current) videoRef.current.srcObject = stream;
 
+      // Timer saisie manuelle si pas de scan
+      timeoutRef.current = setTimeout(() => {
+        setManualEntry(true);
+        stopCamera();
+      }, 5000);
+
       await codeReaderRef.current.decodeFromVideoDevice(null, videoRef.current, async (result) => {
         if (result) {
-          stopCamera(); // Arrêt immédiat après scan
+          clearTimeout(timeoutRef.current);
           await ajouterProduit(result.getText());
         }
       });
@@ -62,6 +78,7 @@ export default function Scan() {
   };
 
   const stopCamera = () => {
+    clearTimeout(timeoutRef.current);
     if (codeReaderRef.current) {
       try { codeReaderRef.current.reset(); } catch {}
       codeReaderRef.current = null;
@@ -79,9 +96,8 @@ export default function Scan() {
       prix: Math.floor(Math.random() * 10) + 1,
       code
     };
-    const panier = loadLocalData('panier') || [];
-    const updated = [...panier, produit];
-    saveLocalData('panier', updated);
+
+    addProductOffline(produit);
 
     const user = auth.currentUser;
     if (user && isOnline) {
@@ -95,18 +111,27 @@ export default function Scan() {
       }
     }
 
-    setShowFlash(true);
-    try { navigator.vibrate?.(50); } catch {}
-    setTimeout(() => setShowFlash(false), 200);
-
-    setMessage(`${t('added')}: ${produit.nom}`);
-    setScanning(false);
+    setMessage(t('productAdded'));
+    setTimeout(() => {
+      setMessage('');
+      handleCloseCamera();
+    }, 2000);
   };
 
   const handleCloseCamera = () => {
     stopCamera();
     setScanning(false);
     setMessage('');
+    setManualEntry(false);
+    setManualCode('');
+  };
+
+  const handleManualSubmit = () => {
+    if (manualCode.trim()) {
+      ajouterProduit(manualCode.trim());
+      setManualEntry(false);
+      setManualCode('');
+    }
   };
 
   useEffect(() => {
@@ -125,22 +150,39 @@ export default function Scan() {
 
   return (
     <div className="scan-page">
-      {showFlash && <div className="flash-screen" />}
       <h1 className="app-title">SelfPay</h1>
       <p className="scan-subtitle">{t('tapToAddProduct')}</p>
-      {!scanning ? (
+
+      {!scanning && !manualEntry && (
         <div className="scan-button-container" onClick={() => setScanning(true)} role="button" tabIndex={0}>
           <div className="scan-button"><Barcode size={40} /></div>
         </div>
-      ) : (
+      )}
+
+      {scanning && (
         <div className="camera-container">
           <video ref={videoRef} muted autoPlay playsInline className="camera-video" />
+          {message && <div className="camera-message">{message}</div>}
           <button onClick={handleCloseCamera} className="camera-button camera-close">
             <X size={16} /> {t('closeCamera')}
           </button>
         </div>
       )}
-      {message && <p className="message">{message}</p>}
+
+      {manualEntry && (
+        <div className="manual-entry">
+          <p>{t('manualEntryPrompt')}</p>
+          <input
+            type="text"
+            value={manualCode}
+            onChange={(e) => setManualCode(e.target.value)}
+            placeholder={t('enterBarcode')}
+          />
+          <button onClick={handleManualSubmit}>{t('validate')}</button>
+          <button onClick={handleCloseCamera}>{t('cancel')}</button>
+        </div>
+      )}
+
       {showListeOverlay && <ListeOverlay onClose={() => setShowListeOverlay(false)} />}
     </div>
   );

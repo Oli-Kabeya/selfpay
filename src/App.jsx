@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import SplashScreen from './components/SplashScreen';
 import Scan from './pages/Scan';
 import Auth from './pages/Auth';
@@ -16,17 +16,77 @@ import i18n from './i18n';
 import FixedTriangles from './components/FixedTriangles';
 import ListeOverlay from './components/ListeOverlay';
 import { FooterVisibilityProvider } from './context/FooterVisibilityContext';
+import { initOfflineSync } from './utils/offlineUtils';
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [initialRoute, setInitialRoute] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+  
+  // isOnline natif (navigator.onLine)
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  // isReallyOnline: online + bon ping
+  const [isReallyOnline, setIsReallyOnline] = useState(navigator.onLine);
 
+  const networkCheckIntervalRef = useRef(null);
+
+  // Thème
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // Ecoute événements online/offline natifs
+  useEffect(() => {
+    const updateOnlineStatus = () => setIsOnline(navigator.onLine);
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
+    };
+  }, []);
+
+  // Fonction ping rapide pour vérifier qualité réseau
+  const checkNetworkQuality = async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // timeout 3s
+
+      const start = performance.now();
+      await fetch('/favicon.ico', { method: 'HEAD', cache: 'no-store', signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      const duration = performance.now() - start;
+
+      // Si réponse lente (> 3s) on considère dégradé
+      return duration < 3000;
+    } catch {
+      return false; // Erreur ou timeout => réseau instable
+    }
+  };
+
+  // Surveillance réseau + qualité
+  useEffect(() => {
+    // Fonction pour mettre à jour isReallyOnline
+    const evaluateNetwork = async () => {
+      if (!navigator.onLine) {
+        setIsReallyOnline(false);
+        return;
+      }
+      const good = await checkNetworkQuality();
+      setIsReallyOnline(good);
+    };
+
+    evaluateNetwork(); // premier test
+
+    // Puis test toutes les 10 secondes
+    networkCheckIntervalRef.current = setInterval(evaluateNetwork, 10000);
+
+    return () => clearInterval(networkCheckIntervalRef.current);
+  }, []);
+
+  // Splash + auth + route initiale
   useEffect(() => {
     const timer = setTimeout(() => {
       auth.onAuthStateChanged((user) => {
@@ -38,6 +98,11 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Initialisation sync offline
+  useEffect(() => {
+    initOfflineSync();
+  }, []);
+
   if (showSplash) return <SplashScreen />;
   if (initialRoute === null) return <div>Chargement...</div>;
 
@@ -45,16 +110,19 @@ export default function App() {
     <I18nextProvider i18n={i18n}>
       <Router>
         <FooterVisibilityProvider>
-          <AppContent initialRoute={initialRoute} theme={theme} setTheme={setTheme} />
+          <AppContent
+            initialRoute={initialRoute}
+            theme={theme}
+            setTheme={setTheme}
+            isOnline={isReallyOnline} // <-- on transmet la vraie qualité réseau
+          />
         </FooterVisibilityProvider>
       </Router>
     </I18nextProvider>
   );
 }
 
-// AppContent avec gestion globale du showListeOverlay
-import { useLocation, useNavigate } from 'react-router-dom';
-function AppContent({ initialRoute, theme, setTheme }) {
+function AppContent({ initialRoute, theme, setTheme, isOnline }) {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
@@ -74,16 +142,15 @@ function AppContent({ initialRoute, theme, setTheme }) {
       <div className="relative max-w-md mx-auto min-h-screen">
         <Routes>
           <Route path="/auth" element={<Auth />} />
-          <Route path="/scan" element={<PrivateRoute><Scan /></PrivateRoute>} />
+          <Route path="/scan" element={<PrivateRoute><Scan isOnline={isOnline} /></PrivateRoute>} />
           <Route path="/historique" element={<PrivateRoute><Historique /></PrivateRoute>} />
-          <Route path="/panier" element={<PrivateRoute><Panier /></PrivateRoute>} />
+          <Route path="/panier" element={<PrivateRoute><Panier isOnline={isOnline} /></PrivateRoute>} />
           <Route path="/profile" element={<PrivateRoute><Profile theme={theme} setTheme={setTheme} /></PrivateRoute>} />
           <Route path="/liste" element={<PrivateRoute><Liste /></PrivateRoute>} />
           <Route path="/paiement" element={<PrivateRoute><Paiement /></PrivateRoute>} />
           <Route path="*" element={<Navigate to={initialRoute} replace />} />
         </Routes>
 
-        {/* ListeOverlay rendu globalement ici */}
         {showListeOverlay && <ListeOverlay onClose={() => setShowListeOverlay(false)} />}
       </div>
 

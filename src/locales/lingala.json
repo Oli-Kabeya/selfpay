@@ -86,5 +86,10 @@
   "scanHint": "Sambisa code-barres na kati ya cadre",
   "distanceAdvice": "Kanga telefone na esika ya malamu",
   "cameraError": "Erreur ya kamera. Tala soki ndenge ya kobatela ezali.",
-  "numberConfig": "Banda na 0"
+  "numberConfig": "Banda na 0",
+   "productAdded": "Biloko ebakisami",
+  "manualEntryPrompt": "Kode moko emonani te. Tiká kodimisa yango na maboko :",
+  "enterBarcode": "Koma kode ya biloko",
+  "validate": "Kokokisa",
+  "offlineCartNotice": "Mode ya hors-ligne. Data ya local ezali kosalema."
 }

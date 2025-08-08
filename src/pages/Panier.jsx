@@ -1,4 +1,3 @@
-// src/pages/Panier.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
@@ -16,14 +15,16 @@ export default function Panier() {
   const [loading, setLoading] = useState(true);
   const [showCamera, setShowCamera] = useState(false);
   const [showListeOverlay, setShowListeOverlay] = useState(false);
-  const [showFlash, setShowFlash] = useState(false);
+  const [message, setMessage] = useState('');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   const videoRef = useRef(null);
   const swipeStartX = useRef(null);
   const codeReaderRef = useRef(null);
   const db = getFirestore();
+  const timeoutRef = useRef(null);
 
+  // Ecoute changements de statut réseau
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -35,6 +36,7 @@ export default function Panier() {
     };
   }, []);
 
+  // Chargement panier local puis Firestore si online
   useEffect(() => {
     const local = loadLocalData('panier') || [];
     setPanier(local);
@@ -60,12 +62,14 @@ export default function Panier() {
     chargerFirestore();
   }, [db, isOnline]);
 
+  // Sauvegarde locale panier à chaque modification
   useEffect(() => {
     saveLocalData('panier', panier);
   }, [panier]);
 
   const total = panier.reduce((sum, item) => sum + (item.prix || 0), 0);
 
+  // Arrêt caméra et clear timeout
   const stopCamera = () => {
     if (codeReaderRef.current) {
       try { codeReaderRef.current.reset(); } catch {}
@@ -76,8 +80,10 @@ export default function Panier() {
       stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
+    clearTimeout(timeoutRef.current);
   };
 
+  // Démarrage caméra et scan code barre une seule fois
   useEffect(() => {
     if (!showCamera) {
       stopCamera();
@@ -89,11 +95,15 @@ export default function Panier() {
         await codeReaderRef.current.decodeOnceFromVideoDevice(undefined, videoRef.current)
           .then(async (result) => {
             stopCamera(); // arrêt immédiat
+
             const code = result.getText();
             await handleRemoveScan(code);
-            setShowFlash(true);
-            setTimeout(() => setShowFlash(false), 200);
-            setShowCamera(false);
+
+            setMessage(t('productRemoved'));
+            timeoutRef.current = setTimeout(() => {
+              setMessage('');
+              setShowCamera(false);
+            }, 2000);
           });
       } catch (err) {
         console.error('Erreur caméra :', err);
@@ -106,6 +116,7 @@ export default function Panier() {
     return () => stopCamera();
   }, [showCamera, t]);
 
+  // Supprimer produit du panier local et Firestore si online
   const handleRemoveScan = async (code) => {
     const updated = panier.filter(item => item.code !== code);
     setPanier(updated);
@@ -118,6 +129,7 @@ export default function Panier() {
     }
   };
 
+  // Gestion swipe pour ouvrir liste overlay
   useEffect(() => {
     const handleTouchStart = (e) => swipeStartX.current = e.touches[0].clientX;
     const handleTouchEnd = (e) => {
@@ -134,7 +146,8 @@ export default function Panier() {
 
   return (
     <div className="panier-page relative">
-      {showFlash && <div className="flash-overlay" />}
+      {message && <div className="camera-message">{message}</div>}
+
       <div className="panier-content scrollable-content">
         <h1 className="total-header">{t('total')}: {total.toFixed(2)} $</h1>
 

@@ -1,6 +1,15 @@
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth } from '../firebase';
+
+// --- Constantes locales ---
+const db = getFirestore();
+const LOCAL_PANIER_KEY = 'panier';
+const LOCAL_PENDING_SYNC_KEY = 'pendingSync';
+
+// --- Fonctions utilitaires ---
 export const isOnline = () => navigator.onLine;
 
-export const saveToLocal = (key, data) => {
+export const saveLocalData = (key, data) => {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (e) {
@@ -8,7 +17,7 @@ export const saveToLocal = (key, data) => {
   }
 };
 
-export const loadFromLocal = (key) => {
+export const loadLocalData = (key) => {
   try {
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : null;
@@ -18,27 +27,49 @@ export const loadFromLocal = (key) => {
   }
 };
 
-export const syncWithFirestore = async (key, fetchFromFirestore, onNewData) => {
-  const localData = loadFromLocal(key);
-  if (localData) onNewData(localData); // 1. Charger local d'abord
+// --- Gestion panier offline ---
+export const addProductOffline = (produit) => {
+  // Panier local
+  const panier = loadLocalData(LOCAL_PANIER_KEY) || [];
+  panier.push(produit);
+  saveLocalData(LOCAL_PANIER_KEY, panier);
 
-  if (isOnline()) {
-    try {
-      const firestoreData = await fetchFromFirestore();
-      if (JSON.stringify(firestoreData) !== JSON.stringify(localData)) {
-        onNewData(firestoreData);
-        saveToLocal(key, firestoreData); // 2. Sauvegarde locale
-      }
-    } catch (e) {
-      console.error('Erreur Firestore:', e);
-    }
+  // File d’attente sync
+  const pending = loadLocalData(LOCAL_PENDING_SYNC_KEY) || [];
+  pending.push(produit);
+  saveLocalData(LOCAL_PENDING_SYNC_KEY, pending);
+
+  console.log('Produit stocké localement et en attente de sync:', produit);
+};
+
+// --- Synchronisation avec Firestore ---
+export const syncPendingData = async () => {
+  const user = auth.currentUser;
+  if (!user || !isOnline()) return;
+
+  const pending = loadLocalData(LOCAL_PENDING_SYNC_KEY) || [];
+  if (pending.length === 0) return;
+
+  try {
+    const ref = doc(db, 'paniers', user.uid);
+    const snap = await getDoc(ref);
+    const anciens = snap.exists() ? snap.data().articles || [] : [];
+
+    await setDoc(ref, { articles: [...anciens, ...pending] });
+    saveLocalData(LOCAL_PENDING_SYNC_KEY, []);
+
+    console.log('Synchronisation réussie avec Firestore');
+  } catch (err) {
+    console.error('Erreur de synchronisation Firestore:', err);
   }
 };
 
-// 🔽 Fonctions spécifiques pour liste
-export const loadListeFromStorage = () => loadFromLocal('liste') || [];
-export const saveListeToStorage = (liste) => saveToLocal('liste', liste);
+// --- Initialisation automatique ---
+export const initOfflineSync = () => {
+  window.addEventListener('online', syncPendingData);
+  syncPendingData(); // tentative au démarrage
+};
 
-// 🔽 Fonctions génériques aliasées pour Scan.jsx
-export const loadLocalData = loadFromLocal;
-export const saveLocalData = saveToLocal;
+// --- Fonctions spécifiques liste (inchangées) ---
+export const loadListeFromStorage = () => loadLocalData('liste') || [];
+export const saveListeToStorage = (liste) => saveLocalData('liste', liste);

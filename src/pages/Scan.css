@@ -207,3 +207,48 @@
   text-shadow: 0 0 5px black;
 }
 
+/* Message central sur la caméraview */
+.camera-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  text-align: center;
+  z-index: 10;
+}
+
+/* Bloc de saisie manuelle */
+.manual-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.manual-entry input {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  width: 200px;
+  font-size: 1rem;
+}
+
+.manual-entry button {
+  padding: 6px 14px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.manual-entry button:last-child {
+  background: #999;
+}
+

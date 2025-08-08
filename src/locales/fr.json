@@ -80,5 +80,11 @@
   "scanHint": "Cadrez bien le code-barres",
   "distanceAdvice": "Tenez le téléphone à bonne distance",
   "cameraError": "Erreur caméra. Vérifiez les autorisations.",
-  "numberConfig": "Commencer par 0"
+  "numberConfig": "Commencer par 0",
+  "productAdded": "Produit ajouté",
+  "manualEntryPrompt": "Aucun code détecté. Entrez le code-barres manuellement :",
+  "enterBarcode": "Entrez le code-barres",
+  "validate": "Valider",
+   "productRemoved": "Produit supprimé",
+  "offlineCartNotice": "Mode hors-ligne. Données locales utilisées."
 }
