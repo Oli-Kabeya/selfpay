@@ -252,3 +252,49 @@
   background: #999;
 }
 
+.camera-button.camera-no-code {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  background-color: rgba(255, 255, 255, 0.85);
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 10;
+  user-select: none;
+}
+
+.camera-button.camera-no-code:hover {
+  background-color: rgba(255, 255, 255, 1);
+}
+
+.no-code-dropdown {
+  position: absolute;
+  left: 10px;
+  top: 45px;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  width: 200px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  z-index: 20;
+}
+
+.no-code-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.no-code-dropdown button:hover {
+  background-color: #f0f0f0;
+}

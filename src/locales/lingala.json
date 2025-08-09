@@ -91,5 +91,9 @@
   "manualEntryPrompt": "Kode moko emonani te. Tiká kodimisa yango na maboko :",
   "enterBarcode": "Koma kode ya biloko",
   "validate": "Kokokisa",
-  "offlineCartNotice": "Mode ya hors-ligne. Data ya local ezali kosalema."
+  "offlineCartNotice": "Mode ya hors-ligne. Data ya local ezali kosalema.",
+  "manualRemovePrompt": "Koma code barres yomoko:",
+   "removeProduct": "Longola yango",
+  "removeSansCodeConfirm": "Bimisa eloko o longoli na chariot na yo. O ndimi ko longola yango?",
+  "ok": "OK"
 }

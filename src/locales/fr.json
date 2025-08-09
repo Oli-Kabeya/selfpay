@@ -78,6 +78,9 @@
   "check": "Cocher",
   "uncheck": "Décocher",
   "scanHint": "Cadrez bien le code-barres",
+  "removeProduct": "Supprimer le produit",
+  "removeSansCodeConfirm": "Vous devez également retirer ce produit de votre panier physique. Confirmez la suppression ?",
+  "ok": "OK",
   "distanceAdvice": "Tenez le téléphone à bonne distance",
   "cameraError": "Erreur caméra. Vérifiez les autorisations.",
   "numberConfig": "Commencer par 0",
@@ -86,5 +89,6 @@
   "enterBarcode": "Entrez le code-barres",
   "validate": "Valider",
    "productRemoved": "Produit supprimé",
-  "offlineCartNotice": "Mode hors-ligne. Données locales utilisées."
+  "offlineCartNotice": "Mode hors-ligne. Données locales utilisées.",
+  "manualRemovePrompt": "Impossible de scanner. Entrez le code barre à retirer :"
 }

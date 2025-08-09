@@ -84,5 +84,9 @@
   "productAdded": "Product added",
   "manualEntryPrompt": "No code detected. Enter the barcode manually:",
   "enterBarcode": "Enter barcode",
-  "validate": "Validate"
+  "validate": "Validate",
+  "manualRemovePrompt": "Unable to scan. Enter barcode to remove:",
+   "removeProduct": "Remove product",
+  "removeSansCodeConfirm": "You must also remove this product from your physical cart. Confirm deletion?",
+  "ok": "OK"
 }
