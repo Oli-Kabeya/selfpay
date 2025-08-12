@@ -368,30 +368,29 @@
   color: #a07800;
 }
 
-
 .manual-entry {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  gap:10px;
+  width: 100%;
+  height: 100%;
   background-color: var(--color-bg);
   padding: 20px 30px;
   border-radius: 12px;
-  backdrop-filter: blur(6px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  width: 90%;
-  max-width: 400px;
   color: var(--color-text);
   text-align: center;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+  /* pour aligner au centre verticalement dans le conteneur caméra */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
 }
 
 .manual-entry p {
   margin-bottom: 12px;
-  font-weight: 600;
+  font-weight: 400;
   font-size: 1.1rem;
-  text-shadow: 0 0 3px rgba(0,0,0,0.4);
 }
 
 .manual-entry input[type="text"] {
@@ -409,10 +408,16 @@
   color: #ff8c00;
   opacity: 0.8;
 }
-
+.bouton-container{
+  display: grid;
+  grid-auto-flow: column;
+  gap: 10px;
+}
 .manual-entry button {
-  background-color: #ff8c00; /* orange foncé */
+  background-color: #ff8c00;
   border: none;
+  flex:1;
+  min-width: 0;
   color: white;
   padding: 10px 20px;
   margin: 0 8px;
@@ -420,7 +425,6 @@
   font-weight: 700;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  min-width: 90px;
   font-size: 1rem;
   box-shadow: 0 4px 8px rgba(255,140,0,0.4);
 }

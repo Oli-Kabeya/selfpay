@@ -6,14 +6,18 @@ import ListeOverlay from '../components/ListeOverlay';
 import { useTranslation } from 'react-i18next';
 import { X, Barcode } from 'lucide-react';
 import { loadLocalData, saveLocalData } from '../utils/offlineUtils';
-import SansCodesDropdown from '../components/SansCodesDropdown';  // <-- import ajouté
+import SansCodesDropdown from '../components/SansCodesDropdown';
 import './Scan.css';
 
-// Ajoute produit localement dans le panier (localStorage)
+// Ajoute produit localement dans panier
 const addProductOffline = (produit) => {
   const panier = loadLocalData('panier') || [];
   const updated = [...panier, produit];
   saveLocalData('panier', updated);
+
+  // Marquer ce produit comme "non synchronisé"
+  const unsynced = loadLocalData('unsyncedProducts') || [];
+  saveLocalData('unsyncedProducts', [...unsynced, produit]);
 };
 
 export default function Scan() {
@@ -35,9 +39,15 @@ export default function Scan() {
   const timeoutRef = useRef(null);
   const processingRef = useRef(false);
 
-  // Online/offline
+  // Met à jour état online/offline et lance sync si on revient en ligne
   useEffect(() => {
-    const updateStatus = () => setIsOnline(navigator.onLine);
+    const updateStatus = () => {
+      const online = navigator.onLine;
+      setIsOnline(online);
+      if (online) {
+        syncUnsyncedProducts();
+      }
+    };
     window.addEventListener('online', updateStatus);
     window.addEventListener('offline', updateStatus);
     return () => {
@@ -46,31 +56,38 @@ export default function Scan() {
     };
   }, []);
 
-  // Chargement des produits sans codes — **sans** filtre createdBy
+  // Chargement liste produits sans codes avec cache local
   useEffect(() => {
     const fetchProduitsSansCodes = async () => {
+      if (!navigator.onLine) {
+        // Offline → charger cache local
+        const cached = loadLocalData('produitsSansCodes') || [];
+        setProduitsSansCodes(cached);
+        return;
+      }
       try {
         const collRef = collection(db, 'produits_sans_codes');
         const snapshot = await getDocs(collRef);
         const produits = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        console.log('[Scan] produits_sans_codes chargés:', produits.length, produits);
         setProduitsSansCodes(produits);
+        saveLocalData('produitsSansCodes', produits);
       } catch (error) {
         console.error('Erreur chargement produits sans codes:', error);
+        const cached = loadLocalData('produitsSansCodes') || [];
+        setProduitsSansCodes(cached);
       }
     };
-
     fetchProduitsSansCodes();
   }, [db]);
 
-  // Cleanup caméra au démontage
+  // Nettoyage caméra au démontage
   useEffect(() => {
     return () => {
       stopCamera();
     };
   }, []);
 
-  // Démarre / stoppe le scan quand scanning change
+  // Démarrer/arrêter scan caméra
   useEffect(() => {
     if (scanning) startScan();
     else stopCamera();
@@ -88,15 +105,12 @@ export default function Scan() {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (videoRef.current) videoRef.current.srcObject = stream;
 
-      // Timeout -> saisie manuelle
+      // Timeout 10s → passage saisie manuelle
       timeoutRef.current = setTimeout(() => {
-  setManualEntry(true);
-  setScanning(false);  // Arrête le scan, mais ne reset pas manualEntry
-  // Ne pas appeler handleCloseCamera ici
-}, 10000);
+        setManualEntry(true);
+        stopCamera();
+      }, 10000);
 
-
-      // Lance le decodeur
       await codeReaderRef.current.decodeFromVideoDevice(null, videoRef.current, async (result) => {
         if (result && !processingRef.current) {
           processingRef.current = true;
@@ -104,7 +118,7 @@ export default function Scan() {
           try {
             await ajouterProduit(result.getText());
           } catch (err) {
-            console.error("Erreur lors de l'ajout après scan:", err);
+            console.error("Erreur ajout après scan:", err);
             processingRef.current = false;
           }
         }
@@ -120,15 +134,40 @@ export default function Scan() {
   const stopCamera = () => {
     clearTimeout(timeoutRef.current);
     if (codeReaderRef.current) {
-      try { codeReaderRef.current.reset(); } catch (e) { /* ignore */ }
+      try { codeReaderRef.current.reset(); } catch (e) {}
       codeReaderRef.current = null;
     }
     if (videoRef.current && videoRef.current.srcObject) {
       try {
         const stream = videoRef.current.srcObject;
         stream.getTracks().forEach(track => track.stop());
-      } catch (e) { /* ignore */ }
+      } catch (e) {}
       videoRef.current.srcObject = null;
+    }
+  };
+
+  // Sync local non synchronisés vers Firestore dès online
+  const syncUnsyncedProducts = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const unsynced = loadLocalData('unsyncedProducts') || [];
+    if (unsynced.length === 0) return;
+
+    try {
+      const ref = doc(db, 'paniers', user.uid);
+      const snap = await getDoc(ref);
+      const anciens = snap.exists() ? snap.data().articles || [] : [];
+
+      // On ajoute TOUS les produits non synchronisés
+      const nouveaux = [...anciens, ...unsynced];
+      await setDoc(ref, { articles: nouveaux });
+
+      // Puis on vide le cache local
+      saveLocalData('unsyncedProducts', []);
+      console.log(`Synchronisation de ${unsynced.length} produit(s) réussie.`);
+    } catch (err) {
+      console.error('Erreur lors de la synchronisation offline → online:', err);
     }
   };
 
@@ -138,64 +177,38 @@ export default function Scan() {
       prix: Math.floor(Math.random() * 10) + 1,
       code
     };
-
     addProductOffline(produit);
 
-    const user = auth.currentUser;
-    if (user && isOnline) {
+    if (isOnline) {
       try {
-        const ref = doc(db, 'paniers', user.uid);
-        const snap = await getDoc(ref);
-        const anciens = snap.exists() ? snap.data().articles || [] : [];
-        await setDoc(ref, { articles: [...anciens, produit] });
+        await syncUnsyncedProducts();
       } catch (err) {
-        console.error('Erreur Firestore:', err);
+        console.error('Erreur sync après ajout produit:', err);
       }
     }
 
     setMessage(t('productAdded') || 'Produit ajouté');
     setTimeout(() => {
       setMessage('');
-      processingRef.current = false;
       handleCloseCamera();
     }, 2000);
   };
 
-  // Fonction ajout produit sans code, par id (anciennement utilisée)
-  const ajouterProduitSansCode = async () => {
-    if (!selectedProduitId) return;
-
-    const produit = produitsSansCodes.find(p => p.id === selectedProduitId);
-    if (!produit) {
-      console.warn('[Scan] produit non trouvé pour id:', selectedProduitId);
-      return;
-    }
-
-    await ajouterProduitSansCodeDirect(produit);
-  };
-
-  // Nouvelle fonction ajout produit sans code, par produit complet (intégration SansCodesDropdown)
   const ajouterProduitSansCodeDirect = async (produit) => {
     if (!produit) return;
-
     const produitAjout = {
       nom: produit.nom,
       prix: produit.prix,
       code: '',
       idSansCode: produit.id
     };
-
     addProductOffline(produitAjout);
 
-    const user = auth.currentUser;
-    if (user && isOnline) {
+    if (isOnline) {
       try {
-        const ref = doc(db, 'paniers', user.uid);
-        const snap = await getDoc(ref);
-        const anciens = snap.exists() ? snap.data().articles || [] : [];
-        await setDoc(ref, { articles: [...anciens, produitAjout] });
+        await syncUnsyncedProducts();
       } catch (err) {
-        console.error('Erreur Firestore:', err);
+        console.error('Erreur sync après ajout produit sans code:', err);
       }
     }
 
@@ -206,31 +219,24 @@ export default function Scan() {
     }, 2000);
   };
 
-  // NOUVELLE fonction ajout manuel améliorée
   const ajouterProduitManuel = async (code) => {
     if (!code.trim()) {
       setMessage(t('emptyCodeError'));
       setTimeout(() => setMessage(''), 3000);
       return;
     }
-
     const produit = {
       nom: `${t('manualProduct')} ${code.slice(0, 5)}`,
       prix: 1,
       code,
     };
-
     addProductOffline(produit);
 
-    const user = auth.currentUser;
-    if (user && isOnline) {
+    if (isOnline) {
       try {
-        const ref = doc(db, 'paniers', user.uid);
-        const snap = await getDoc(ref);
-        const anciens = snap.exists() ? snap.data().articles || [] : [];
-        await setDoc(ref, { articles: [...anciens, produit] });
+        await syncUnsyncedProducts();
       } catch (err) {
-        console.error('Erreur ajout manuel Firestore:', err);
+        console.error('Erreur sync après ajout manuel:', err);
       }
     }
 
@@ -252,19 +258,14 @@ export default function Scan() {
     setSelectedProduitId('');
   };
 
-  // modifié : appel de la nouvelle fonction d’ajout manuel
-  //const handleManualSubmit = () => {
-  //  ajouterProduitManuel(manualCode.trim());
- // };
- const handleManualSubmit = async () => {
-  if (manualCode.trim()) {
-    await ajouterProduitManuel(manualCode.trim());
-    handleCloseCamera();
-  }
-};
+  const handleManualSubmit = async () => {
+    if (manualCode.trim()) {
+      await ajouterProduitManuel(manualCode.trim());
+      handleCloseCamera();
+    }
+  };
 
-
-  // Swipe left -> open overlay (optionnel)
+  // Swipe pour ouvrir overlay liste
   useEffect(() => {
     const handleTouchStart = (e) => swipeStartX.current = e.touches[0].clientX;
     const handleTouchEnd = (e) => {
@@ -285,45 +286,60 @@ export default function Scan() {
       <p className="scan-subtitle">{t('tapToAddProduct')}</p>
 
       {!scanning && !manualEntry && (
-        <div className="scan-button-container" onClick={() => setScanning(true)} role="button" tabIndex={0}>
+        <div
+          className="scan-button-container"
+          onClick={() => setScanning(true)}
+          role="button"
+          tabIndex={0}
+        >
           <div className="scan-button"><Barcode size={40} /></div>
         </div>
       )}
 
-      {scanning && (
+      {(scanning || manualEntry) && (
         <div className="camera-container">
-          <video ref={videoRef} muted autoPlay playsInline className="camera-video" />
           {message && <div className="camera-message">{message}</div>}
+
+          {/* Bloc vidéo ou saisie manuelle — même taille */}
+          {scanning && !manualEntry && (
+            <video ref={videoRef} muted autoPlay playsInline className="camera-video" />
+          )}
+          {manualEntry && (
+            <div className="manual-entry camera-video">
+              <p>{t('manualEntryPrompt')}</p>
+              <input
+                type="text"
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value)}
+                placeholder={t('enterBarcode')}
+              />
+              <div className="bouton-container">
+                <button onClick={handleManualSubmit}>{t('validate') || 'Valider'}</button>
+                <button onClick={handleCloseCamera}>{t('cancel') || 'Annuler'}</button>
+              </div>
+            </div>
+          )}
 
           <div className="camera-buttons-row">
             <div className="sans-codes-container">
-              {/* Intégration du composant SansCodesDropdown */}
               <SansCodesDropdown
                 onAdd={(produit) => {
                   setSelectedProduitId(produit.id);
                   ajouterProduitSansCodeDirect(produit);
                 }}
+                produits={produitsSansCodes} // passer la liste en prop
               />
             </div>
-
-            <button onClick={handleCloseCamera} className="camera-button camera-close">
-              <X size={16} /> {t('closeCamera') || 'Fermer caméra'}
-            </button>
+            {/* Affiche le bouton fermer uniquement si on scanne (pas en manuel) */}
+            {scanning && !manualEntry && (
+              <button
+                onClick={handleCloseCamera}
+                className="camera-button camera-close"
+              >
+                <X size={16} /> {t('closeCamera') || 'Fermer caméra'}
+              </button>
+            )}
           </div>
-        </div>
-      )}
-
-      {manualEntry && (
-        <div className="manual-entry">
-          <p>{t('manualEntryPrompt')}</p>
-          <input
-            type="text"
-            value={manualCode}
-            onChange={(e) => setManualCode(e.target.value)}
-            placeholder={t('enterBarcode')}
-          />
-          <button onClick={handleManualSubmit}>{t('validate') || 'Valider'}</button>
-          <button onClick={handleCloseCamera}>{t('cancel') || 'Annuler'}</button>
         </div>
       )}
 
