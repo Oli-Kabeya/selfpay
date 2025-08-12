@@ -81,6 +81,10 @@
   "removeProduct": "Supprimer le produit",
   "removeSansCodeConfirm": "Vous devez également retirer ce produit de votre panier physique. Confirmez la suppression ?",
   "ok": "OK",
+  "emptyCodeError": "Veuillez saisir un code valide",
+    "manualProduct": "Produit manuel",
+  "selectProduct": "-- Choisissez un produit --",
+  "selectSansCodeProduct": "Sélectionner un produit sans code",
   "distanceAdvice": "Tenez le téléphone à bonne distance",
   "cameraError": "Erreur caméra. Vérifiez les autorisations.",
   "numberConfig": "Commencer par 0",
@@ -90,5 +94,6 @@
   "validate": "Valider",
    "productRemoved": "Produit supprimé",
   "offlineCartNotice": "Mode hors-ligne. Données locales utilisées.",
-  "manualRemovePrompt": "Impossible de scanner. Entrez le code barre à retirer :"
+  "manualRemovePrompt": "Impossible de scanner. Entrez le code barre à retirer :",
+"removeConfirmMessage": "Vous devez également retirer ce produit de votre panier physique. Confirmez la suppression ?"
 }
