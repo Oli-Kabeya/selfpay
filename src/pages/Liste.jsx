@@ -1,9 +1,11 @@
+// Liste.jsx
 import React, { useEffect, useState } from 'react';
 import { auth } from '../firebase';
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import useTranslation from '../hooks/useTranslation';
 import FooterNav from '../components/FooterNav';
+import { saveLocal, loadLocal, addPending, syncPendingData, isOnline, KEYS } from '../utils/offlineUtils';
 import './Liste.css';
 
 export default function Liste() {
@@ -25,66 +27,72 @@ export default function Liste() {
         return;
       }
 
-      // Charger depuis localStorage d'abord
-      const localItems = JSON.parse(localStorage.getItem('liste_courses') || '[]');
+      const localItems = loadLocal('liste_courses') || [];
       setItems(localItems);
 
-      try {
-        const docRef = doc(db, 'listes_courses', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          const allItems = data.items || [];
-          setItems(allItems);
-          localStorage.setItem('liste_courses', JSON.stringify(allItems));
-        } else {
-          setItems([]);
+      if (isOnline()) {
+        try {
+          const docRef = doc(db, 'listes_courses', user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            const allItems = data.items || [];
+            setItems(allItems);
+            saveLocal('liste_courses', allItems);
+          }
+        } catch (error) {
+          console.error('Erreur lors du chargement de la liste :', error);
+        } finally {
+          syncPendingData();
         }
-      } catch (error) {
-        console.error('Erreur lors du chargement de la liste :', error);
-        setItems(localItems); // fallback
-      } finally {
-        setLoading(false);
       }
+
+      setLoading(false);
     };
 
     fetchList();
   }, [db, navigate]);
 
   const updateFirestoreList = async (newItems) => {
-    const user = auth.currentUser;
-    if (!user) return;
-    try {
-      const docRef = doc(db, 'listes_courses', user.uid);
-      await setDoc(docRef, { items: newItems }, { merge: true });
-      localStorage.setItem('liste_courses', JSON.stringify(newItems));
-    } catch (error) {
-      console.error('Erreur Firestore :', error);
+    setItems(newItems);
+    saveLocal('liste_courses', newItems);
+
+    if (isOnline()) {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+        const docRef = doc(db, 'listes_courses', user.uid);
+        await setDoc(docRef, { items: newItems }, { merge: true });
+        syncPendingData();
+      } catch (error) {
+        console.error('Erreur Firestore :', error);
+        // Offline fallback → ajouter à pending
+        addPending(KEYS.pending.liste, { type: 'setList', items: newItems });
+      }
+    } else {
+      addPending(KEYS.pending.liste, { type: 'setList', items: newItems });
     }
   };
 
-  const toggleChecked = async (id) => {
+  const toggleChecked = (id) => {
     const updatedItems = items.map(item =>
       item.id === id ? { ...item, checked: !item.checked } : item
     );
-    setItems(updatedItems);
-    await updateFirestoreList(updatedItems);
+    updateFirestoreList(updatedItems);
   };
 
-  const deleteChecked = async () => {
+  const deleteChecked = () => {
     const filtered = items.filter(item => !item.checked);
-    setItems(filtered);
-    await updateFirestoreList(filtered);
+    updateFirestoreList(filtered);
   };
 
-  const deleteAll = async () => {
+  const deleteAll = () => {
     const confirmed = window.confirm(t('confirmDeleteAll') || 'Supprimer toute la liste ?');
     if (!confirmed) return;
-    setItems([]);
-    await updateFirestoreList([]);
+    updateFirestoreList([]);
   };
 
-  const addItem = async () => {
+  const addItem = () => {
     const trimmed = newItemName.trim();
     if (!trimmed) return;
     const newItem = {
@@ -94,9 +102,8 @@ export default function Liste() {
       ajoute_le: new Date()
     };
     const updatedItems = [...items, newItem];
-    setItems(updatedItems);
     setNewItemName('');
-    await updateFirestoreList(updatedItems);
+    updateFirestoreList(updatedItems);
   };
 
   const startEditing = (id, currentName) => {
@@ -109,22 +116,20 @@ export default function Liste() {
     setEditingText('');
   };
 
-  const saveEditing = async (id) => {
+  const saveEditing = (id) => {
     const trimmed = editingText.trim();
     if (!trimmed) return cancelEditing();
     const updatedItems = items.map(item =>
       item.id === id ? { ...item, nom: trimmed } : item
     );
-    setItems(updatedItems);
     setEditingId(null);
     setEditingText('');
-    await updateFirestoreList(updatedItems);
+    updateFirestoreList(updatedItems);
   };
 
-  const deleteItem = async (id) => {
+  const deleteItem = (id) => {
     const filtered = items.filter(item => item.id !== id);
-    setItems(filtered);
-    await updateFirestoreList(filtered);
+    updateFirestoreList(filtered);
   };
 
   if (loading) {
@@ -167,7 +172,7 @@ export default function Liste() {
                       autoFocus
                       className="edit-input"
                       inputMode="text"
-                      style={{ fontSize: '16px' }} // Pour éviter zoom mobile
+                      style={{ fontSize: '16px' }}
                     />
                     <button onClick={() => saveEditing(id)} className="save-btn" aria-label={t('save')}>✓</button>
                     <button onClick={cancelEditing} className="cancel-btn" aria-label={t('cancel')}>✗</button>
@@ -178,9 +183,7 @@ export default function Liste() {
                       className={`item-name ${checked ? 'checked' : ''}`}
                       onClick={() => startEditing(id, nom)}
                       tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') startEditing(id, nom);
-                      }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') startEditing(id, nom); }}
                       aria-label={t('editItem')}
                       role="button"
                     >
@@ -220,7 +223,7 @@ export default function Liste() {
           onKeyDown={(e) => e.key === 'Enter' && addItem()}
           aria-label={t('addNewItem')}
           inputMode="text"
-          style={{ fontSize: '16px' }} // évite zoom mobile
+          style={{ fontSize: '16px' }}
         />
         <button onClick={addItem} disabled={!newItemName.trim()}>
           {t('add')}

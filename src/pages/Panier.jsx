@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import ListeOverlay from '../components/ListeOverlay';
 import { useTranslation } from 'react-i18next';
-import { loadLocalData, saveLocalData } from '../utils/offlineUtils';
+import { loadLocal, saveLocal, addToPanier, syncPendingData, isOnline as checkOnline } from '../utils/offlineUtils';
 import './Panier.css';
 
 export default function Panier() {
@@ -14,15 +14,15 @@ export default function Panier() {
   const [loading, setLoading] = useState(true);
   const [showListeOverlay, setShowListeOverlay] = useState(false);
   const [message, setMessage] = useState('');
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
+  const [isOnline, setIsOnline] = useState(checkOnline());
   const [modalVisible, setModalVisible] = useState(false);
   const [produitToDelete, setProduitToDelete] = useState(null);
-
   const db = getFirestore();
+  const swipeStartX = useRef(null);
 
+  // Gestion statut online/offline
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
+    const handleOnline = () => { setIsOnline(true); syncPendingData(); };
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -32,54 +32,33 @@ export default function Panier() {
     };
   }, []);
 
+  // Chargement panier depuis localStorage + Firestore si online
   useEffect(() => {
-    const local = loadLocalData('panier') || [];
-    setPanier(local);
+    const localPanier = loadLocal('panier') || [];
+    setPanier(localPanier);
+    setLoading(false);
+  }, []);
 
-    const chargerData = async () => {
-      const user = auth.currentUser;
-      if (user && isOnline) {
-        try {
-          const panierRef = doc(db, 'paniers', user.uid);
-          const docSnap = await getDoc(panierRef);
-          if (docSnap.exists()) {
-            const firestoreData = docSnap.data().articles || [];
-            setPanier(firestoreData);
-            saveLocalData('panier', firestoreData);
-          }
-        } catch (err) {
-          console.error('Erreur Firestore:', err);
-        }
-      }
-      setLoading(false);
-    };
-
-    chargerData();
-  }, [db, isOnline]);
-
+  // Sauvegarde automatique local
   useEffect(() => {
-    saveLocalData('panier', panier);
+    saveLocal('panier', panier);
   }, [panier]);
 
   const total = panier.reduce((sum, item) => sum + (item.prix || 0), 0);
 
-  // Ouvre modale de confirmation suppression
+  // Suppression produit
   const confirmRemoveProduit = (produit) => {
     setProduitToDelete(produit);
     setModalVisible(true);
   };
-
-  // Valide suppression produit
   const validerSuppression = async () => {
     if (!produitToDelete) return;
-
     const updated = panier.filter(item => item.code !== produitToDelete.code);
     setPanier(updated);
-    saveLocalData('panier', updated);
+    saveLocal('panier', updated);
 
-    const user = auth.currentUser;
-    if (user && isOnline) {
-      const ref = doc(db, 'paniers', user.uid);
+    if (auth.currentUser && isOnline) {
+      const ref = doc(db, 'paniers', auth.currentUser.uid);
       await setDoc(ref, { articles: updated }, { merge: true });
     }
 
@@ -88,16 +67,12 @@ export default function Panier() {
     setMessage(t('productRemoved'));
     setTimeout(() => setMessage(''), 2000);
   };
+  const annulerSuppression = () => { setModalVisible(false); setProduitToDelete(null); };
 
-  const annulerSuppression = () => {
-    setModalVisible(false);
-    setProduitToDelete(null);
-  };
-
-  const swipeStartX = useRef(null);
+  // Swipe pour overlay liste
   useEffect(() => {
-    const handleTouchStart = (e) => swipeStartX.current = e.touches[0].clientX;
-    const handleTouchEnd = (e) => {
+    const handleTouchStart = e => swipeStartX.current = e.touches[0].clientX;
+    const handleTouchEnd = e => {
       const deltaX = e.changedTouches[0].clientX - swipeStartX.current;
       if (deltaX < -50) setShowListeOverlay(true);
     };
@@ -114,11 +89,9 @@ export default function Panier() {
       {message && <div className="camera-message">{message}</div>}
 
       <div className={`panier-content scrollable-content${modalVisible ? ' modal-blur' : ''}`}>
-        <h1 className="total-header">{t('total')}: {total.toFixed(2)} $</h1>
+        <h1 className="total-header">{t('total')}: {total.toFixed(2)} FCFA</h1>
 
-        {!isOnline && (
-          <p className="offline-warning">{t('offlineCartNotice') || 'Mode hors-ligne. Données locales utilisées.'}</p>
-        )}
+        {!isOnline && <p className="offline-warning">{t('offlineCartNotice') || 'Mode hors-ligne. Données locales utilisées.'}</p>}
 
         {loading ? (
           <p className="loading-text">{t('loadingCart') || 'Chargement du panier...'}</p>
@@ -129,14 +102,12 @@ export default function Panier() {
             {panier.map((item, idx) => (
               <li key={idx} className="product-item">
                 <div className="item-name">{item.nom}</div>
-                <div className="item-price">{item.prix.toFixed(2)} $</div>
+                <div className="item-price">{item.prix.toFixed(2)} FCFA</div>
                 <button
                   className="remove-btn"
                   aria-label={t('removeProduct')}
                   onClick={() => confirmRemoveProduit(item)}
-                >
-                  ✕
-                </button>
+                >✕</button>
               </li>
             ))}
           </ul>

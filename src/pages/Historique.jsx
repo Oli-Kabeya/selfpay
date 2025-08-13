@@ -4,6 +4,7 @@ import { auth } from '../firebase';
 import { getFirestore, collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
+import { loadLocal, saveLocal, isOnline } from '../utils/offlineUtils';
 import './Historique.css';
 
 export default function Historique() {
@@ -11,11 +12,11 @@ export default function Historique() {
   const [achats, setAchats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [online, setOnline] = useState(isOnline());
   const db = getFirestore();
 
   useEffect(() => {
-    const updateStatus = () => setIsOnline(navigator.onLine);
+    const updateStatus = () => setOnline(isOnline());
     window.addEventListener('online', updateStatus);
     window.addEventListener('offline', updateStatus);
     return () => {
@@ -27,121 +28,49 @@ export default function Historique() {
   useEffect(() => {
     const fetchAchats = async (user) => {
       try {
-        const localData = JSON.parse(localStorage.getItem('achats') || '[]');
+        const localData = loadLocal('achats') || [];
         setAchats(localData);
 
-        if (isOnline) {
+        if (online) {
           const achatsRef = collection(db, 'achats', user.uid, 'liste');
           const snapshot = await getDocs(achatsRef);
-          const listeAchats = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          listeAchats.sort((a, b) => {
-            if (!a.date) return 1;
-            if (!b.date) return -1;
-            return b.date.seconds - a.date.seconds;
-          });
+          const listeAchats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          listeAchats.sort((a,b) => (b.date?.seconds || 0) - (a.date?.seconds || 0));
           setAchats(listeAchats);
-          localStorage.setItem('achats', JSON.stringify(listeAchats));
+          saveLocal('achats', listeAchats);
         }
-      } catch (err) {
+      } catch(err) {
         console.error(t('errorLoading'), err);
-      } finally {
-        setLoading(false);
-      }
+      } finally { setLoading(false); }
     };
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) fetchAchats(user);
-      else {
-        const localData = JSON.parse(localStorage.getItem('achats') || '[]');
-        setAchats(localData);
-        setLoading(false);
-      }
+    const unsubscribe = onAuthStateChanged(auth, (user)=>{
+      if(user) fetchAchats(user);
+      else { setAchats(loadLocal('achats')||[]); setLoading(false); }
     });
+    return ()=>unsubscribe();
+  }, [db, t, online]);
 
-    return () => unsubscribe();
-  }, [db, t, isOnline]);
-
-  const totalDepense = achats.reduce((sum, achat) => sum + (achat.montant || 0), 0);
-
-  const supprimerHistorique = async () => {
-    if (!auth.currentUser) return;
-    if (!window.confirm(t('confirmDelete'))) return;
-
-    try {
-      if (isOnline) {
-        const achatsRef = collection(db, 'achats', auth.currentUser.uid, 'liste');
-        const snapshot = await getDocs(achatsRef);
-        const deletePromises = snapshot.docs.map(docSnap =>
-          deleteDoc(doc(db, 'achats', auth.currentUser.uid, 'liste', docSnap.id))
-        );
-        await Promise.all(deletePromises);
-      }
-      setAchats([]);
-      localStorage.setItem('achats', JSON.stringify([]));
-      setMessage(t('deleted'));
-    } catch (err) {
-      console.error(t('errorDelete'), err);
-      setMessage(t('errorOccurred'));
-    }
-    setTimeout(() => setMessage(''), 4000);
-  };
-
-  if (loading) {
-    return (
-      <div className="h-screen flex flex-col justify-center items-center bg-background text-primary transition-colors duration-300">
-        <div className="loader mb-4"></div>
-        <p className="text-lg font-semibold">{t('loading')}</p>
-      </div>
-    );
-  }
+  const totalDepense = achats.reduce((sum,item)=>sum+(item.montant||0),0);
 
   return (
     <div className="historique-page">
-      <div className="historique-header">
-        <h1 className="text-xl font-bold mb-2">{t('title')}</h1>
-        <p className="text-base font-medium">
-          {t('totalSpent')}: {totalDepense.toFixed(2)} $
-        </p>
-      </div>
+      <h1>{t('history')}</h1>
+      <p>{t('totalSpent')}: {totalDepense.toFixed(2)} FCFA</p>
 
-      {message && (
-        <p className="mb-4 text-center text-green-600 dark:text-green-400">{message}</p>
-      )}
-
-      {achats.length === 0 ? (
-        <div className="empty-history">
-          <svg xmlns="http://www.w3.org/2000/svg" className="empty-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 9h10m-11 4h12m-12 4h12M4 21h16a1 1 0 001-1V7a1 1 0 00-1-1H4a1 1 0 00-1 1v13a1 1 0 001 1z" />
-          </svg>
-          <p className="empty-text">{t('noPurchases')}</p>
-        </div>
-      ) : (
-        <ul className="achats-list">
-          {achats.map((achat) => (
-            <li key={achat.id} className="achat-card">
-              <p className="achat-date">
-                {t('date')}: {achat.date ? new Date(achat.date.seconds * 1000).toLocaleString() : t('unknownDate')}
-              </p>
-              <p className="achat-montant">
-                {t('amount')}: {achat.montant.toFixed(2)} $
-              </p>
-            </li>
-          ))}
+      {loading ? <p>{t('loadingHistory')}</p> : (
+        <ul className="historique-list">
+          {achats.length===0 ? <li>{t('noPurchases')}</li> :
+            achats.map(a=>(
+              <li key={a.id} className="historique-item">
+                <div>{a.nom || t('purchase')} - {a.montant?.toFixed(2)} FCFA</div>
+                <div>{new Date((a.date?.seconds||Date.now()/1000)*1000).toLocaleString()}</div>
+              </li>
+            ))
+          }
         </ul>
       )}
-
-      {achats.length > 0 && (
-        <button
-          onClick={supprimerHistorique}
-          className="w-full p-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold shadow mt-4"
-        >
-          {t('delete')}
-        </button>
-      )}
-
+      {message && <p className="message">{message}</p>}
       <FooterNav />
     </div>
   );

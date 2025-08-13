@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "selfpay-olivier"
-  }
+    "default": "selfpay-olivier",
+    "pwa-selfpay": "selfpay-olivier"
+  },
+  "targets": {},
+  "etags": {}
 }

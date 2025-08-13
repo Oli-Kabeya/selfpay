@@ -1,22 +1,27 @@
-import React, { useState, useEffect } from 'react';
+// src/pages/Paiement.jsx
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, serverTimestamp } from 'firebase/firestore';
 import { useTranslation } from 'react-i18next';
 import FooterNav from '../components/FooterNav';
+import { addToHistorique, isOnline, loadLocal, KEYS, addPending, syncPendingData } from '../utils/offlineUtils';
 
 const Paiement = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const db = getFirestore();
+
   const [modePaiement, setModePaiement] = useState('selfpay');
   const [message, setMessage] = useState('');
   const [total, setTotal] = useState(0);
-  const db = getFirestore();
+  const [panier, setPanier] = useState([]);
 
-  // Charger le total du panier au montage
+  // Charger le panier local au montage
   useEffect(() => {
-    const panier = JSON.parse(localStorage.getItem('panier') || '[]');
-    const totalCalcule = panier.reduce((sum, item) => sum + (item.prix || 0), 0);
+    const localPanier = loadLocal(KEYS.panier);
+    setPanier(localPanier);
+    const totalCalcule = localPanier.reduce((sum, item) => sum + (item.prix || 0), 0);
     setTotal(totalCalcule);
   }, []);
 
@@ -27,31 +32,41 @@ const Paiement = () => {
       return;
     }
 
+    if (panier.length === 0) {
+      setMessage(t('emptyCart') || 'Votre panier est vide.');
+      return;
+    }
+
     const transactionId = `TX-${Date.now()}`;
     const transaction = {
       uid: user.uid,
       montant: total,
       mode: modePaiement,
-      date: serverTimestamp(),
+      date: new Date(),
       id: transactionId,
+      items: panier
     };
 
     try {
-      const achatsRef = collection(db, 'achats', user.uid, 'liste');
-      await addDoc(achatsRef, transaction);
+      if (isOnline()) {
+        // Si connecté, sync direct via offlineUtils
+        await addToHistorique(transaction);
+        await syncPendingData();
+      } else {
+        // Si offline, ajouter à la file pending
+        addPending(KEYS.pending.historique, transaction);
+        setMessage(t('offlinePaymentQueued') || 'Paiement enregistré localement et sera synchronisé dès connexion.');
+      }
 
-      const anonymesRef = collection(db, 'transactions_anonymes');
-      await addDoc(anonymesRef, {
-        montant: total,
-        mode: modePaiement,
-        date: serverTimestamp(),
-        id: transactionId,
-      });
+      // Vider le panier local après paiement
+      localStorage.setItem(KEYS.panier, JSON.stringify([]));
+      setPanier([]);
+      setTotal(0);
 
       navigate(`/qrcode/${transactionId}`);
     } catch (err) {
       console.error(err);
-      setMessage(t('paymentError'));
+      setMessage(t('paymentError') || 'Erreur lors du paiement.');
     }
   };
 
@@ -85,6 +100,7 @@ const Paiement = () => {
         {message && <p className="mt-4 text-center text-red-500 text-sm">{message}</p>}
       </div>
 
+      <FooterNav />
     </div>
   );
 };

@@ -1,75 +1,164 @@
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth } from '../firebase';
+// utils/offlineUtils.js
+import { getFirestore, collection, doc, getDoc, addDoc, setDoc } from "firebase/firestore";
+import { auth } from "../firebase";
 
-// --- Constantes locales ---
 const db = getFirestore();
-const LOCAL_PANIER_KEY = 'panier';
-const LOCAL_PENDING_SYNC_KEY = 'pendingSync';
 
-// --- Fonctions utilitaires ---
-export const isOnline = () => navigator.onLine;
-
-export const saveLocalData = (key, data) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (e) {
-    console.error('Erreur sauvegarde locale:', e);
+// 🔑 Clés locales
+export const KEYS = {
+  panier: "selfpay_panier",
+  liste: "selfpay_liste",
+  historique: "selfpay_historique",
+  profil: "selfpay_profil",
+  pending: {
+    panier: "selfpay_pending_panier",
+    liste: "selfpay_pending_liste",
+    historique: "selfpay_pending_historique"
   }
 };
 
-export const loadLocalData = (key) => {
+// ⏱ Gestion batch sync
+const SYNC_INTERVAL_MS = 60 * 60 * 1000; // 1h
+let lastSync = 0;
+
+// 📌 Charger des données locales génériques
+export function loadLocal(key) {
   try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-  } catch (e) {
-    console.error('Erreur chargement local:', e);
-    return null;
+    return JSON.parse(localStorage.getItem(key)) || [];
+  } catch {
+    return [];
   }
-};
+}
 
-// --- Gestion panier offline ---
-export const addProductOffline = (produit) => {
-  // Panier local
-  const panier = loadLocalData(LOCAL_PANIER_KEY) || [];
-  panier.push(produit);
-  saveLocalData(LOCAL_PANIER_KEY, panier);
+// 📌 Sauvegarder en local générique
+export function saveLocal(key, data) {
+  localStorage.setItem(key, JSON.stringify(data));
+}
 
-  // File d’attente sync
-  const pending = loadLocalData(LOCAL_PENDING_SYNC_KEY) || [];
-  pending.push(produit);
-  saveLocalData(LOCAL_PENDING_SYNC_KEY, pending);
+// 🔹 Spécifique liste de courses
+export const loadListeFromStorage = () => loadLocal(KEYS.liste);
+export const saveListeToStorage = (items) => saveLocal(KEYS.liste, items);
 
-  console.log('Produit stocké localement et en attente de sync:', produit);
-};
+// 📌 Détection connexion
+export function isOnline() {
+  return navigator.onLine;
+}
 
-// --- Synchronisation avec Firestore ---
-export const syncPendingData = async () => {
-  const user = auth.currentUser;
-  if (!user || !isOnline()) return;
+// 📌 Ajouter à la file de sync
+export function addPending(key, item) {
+  const pending = loadLocal(key);
+  pending.push(item);
+  saveLocal(key, pending);
+}
 
-  const pending = loadLocalData(LOCAL_PENDING_SYNC_KEY) || [];
-  if (pending.length === 0) return;
+// 📌 Fusionner données Firestore et LocalStorage (sans doublons)
+export function mergeData(localData, remoteData, idField = "id") {
+  const map = new Map();
+  [...localData, ...remoteData].forEach(item => {
+    map.set(item[idField], { ...map.get(item[idField]), ...item });
+  });
+  return Array.from(map.values());
+}
 
-  try {
-    const ref = doc(db, 'paniers', user.uid);
-    const snap = await getDoc(ref);
-    const anciens = snap.exists() ? snap.data().articles || [] : [];
+// 🔄 Synchronisation générique avec Firestore
+export async function syncPendingData() {
+  const uid = auth.currentUser?.uid;
+  if (!uid || !isOnline()) return;
 
-    await setDoc(ref, { articles: [...anciens, ...pending] });
-    saveLocalData(LOCAL_PENDING_SYNC_KEY, []);
+  const now = Date.now();
+  if (now - lastSync < SYNC_INTERVAL_MS) return;
+  lastSync = now;
 
-    console.log('Synchronisation réussie avec Firestore');
-  } catch (err) {
-    console.error('Erreur de synchronisation Firestore:', err);
+  // 🔹 Sync panier
+  const pendingPanier = loadLocal(KEYS.pending.panier);
+  if (pendingPanier.length) {
+    for (const product of pendingPanier) {
+      await addDoc(collection(db, "achats", uid, "liste"), product);
+      await addDoc(collection(db, "transactions_anonymes"), {
+        ...product,
+        uid,
+        timestamp: new Date()
+      });
+    }
+    saveLocal(KEYS.pending.panier, []);
   }
-};
 
-// --- Initialisation automatique ---
-export const initOfflineSync = () => {
-  window.addEventListener('online', syncPendingData);
+  // 🔹 Sync historique
+  const pendingHist = loadLocal(KEYS.pending.historique);
+  if (pendingHist.length) {
+    for (const tx of pendingHist) {
+      await addDoc(collection(db, "achats", uid, "liste"), tx);
+    }
+    saveLocal(KEYS.pending.historique, []);
+  }
+
+  // 🔹 Sync liste de courses
+  const pendingListe = loadLocal(KEYS.pending.liste);
+  if (pendingListe.length) {
+    for (const item of pendingListe) {
+      await setDoc(doc(db, "listes_courses", uid, item.id), item, { merge: true });
+    }
+    saveLocal(KEYS.pending.liste, []);
+  }
+
+  console.log("Sync batch offline terminé");
+}
+
+// 📦 Ajouter au panier
+export async function addToPanier(product) {
+  const panier = loadLocal(KEYS.panier);
+  panier.push(product);
+  saveLocal(KEYS.panier, panier);
+
+  if (isOnline()) {
+    await syncPendingData();
+  } else {
+    addPending(KEYS.pending.panier, product);
+  }
+}
+
+// 📦 Ajouter à l’historique
+export async function addToHistorique(transaction) {
+  const historique = loadLocal(KEYS.historique);
+  historique.push(transaction);
+  saveLocal(KEYS.historique, historique);
+
+  if (isOnline()) {
+    await syncPendingData();
+  } else {
+    addPending(KEYS.pending.historique, transaction);
+  }
+}
+
+// 📦 Ajouter à la liste de courses
+export async function addToListe(item) {
+  const liste = loadLocal(KEYS.liste);
+  liste.push(item);
+  saveLocal(KEYS.liste, liste);
+
+  if (isOnline()) {
+    await syncPendingData();
+  } else {
+    addPending(KEYS.pending.liste, item);
+  }
+}
+
+// 📦 Synchroniser le profil
+export async function syncProfil() {
+  const uid = auth.currentUser?.uid;
+  if (!uid || !isOnline()) return loadLocal(KEYS.profil);
+
+  const profilSnap = await getDoc(doc(db, "users", uid));
+  if (profilSnap.exists()) {
+    saveLocal(KEYS.profil, profilSnap.data());
+    return profilSnap.data();
+  }
+  return {};
+}
+
+// 🛠 Initialisation automatique offline
+export function initOfflineSync() {
+  window.addEventListener("online", syncPendingData);
   syncPendingData(); // tentative au démarrage
-};
-
-// --- Fonctions spécifiques liste (inchangées) ---
-export const loadListeFromStorage = () => loadLocalData('liste') || [];
-export const saveListeToStorage = (liste) => saveLocalData('liste', liste);
+  setInterval(syncPendingData, SYNC_INTERVAL_MS); // sync automatique toutes les heures
+}

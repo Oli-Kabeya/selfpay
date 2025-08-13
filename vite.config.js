@@ -2,13 +2,20 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
+import fs from 'fs';
+
+const produitImagesDir = path.resolve(__dirname, 'public/icons'); // dossier où sont toutes les images des produits
+let produitImages = [];
+try {
+  produitImages = fs.readdirSync(produitImagesDir).map(img => `icons/${img}`);
+} catch (e) {
+  console.warn('Impossible de lire les images produits, assurez-vous que public/icons existe.');
+}
 
 export default defineConfig({
   base: '/',
   plugins: [
-    react({
-      jsxRuntime: 'automatic',
-    }),
+    react({ jsxRuntime: 'automatic' }),
     VitePWA({
       registerType: 'autoUpdate',
       devOptions: { enabled: true },
@@ -18,7 +25,8 @@ export default defineConfig({
         'logo.svg',
         'icons/icon-192x192.png',
         'icons/icon-512x512.png',
-        'icons/logos-pwa.png', // ✅ ton logo ajouté ici
+        'icons/logos-pwa.png',
+        ...produitImages, // ✅ Pré-cache toutes les images produits sans codes
       ],
       manifest: {
         name: 'SelfPay',
@@ -32,7 +40,7 @@ export default defineConfig({
           { src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
           { src: '/logo.svg', sizes: '120x120', type: 'image/svg+xml', purpose: 'any maskable' },
-          { src: '/icons/logos-pwa.png', sizes: '256x256', type: 'image/png', purpose: 'any' }, // ✅ ajouté dans icons aussi
+          { src: '/icons/logos-pwa.png', sizes: '256x256', type: 'image/png', purpose: 'any' },
         ],
       },
       workbox: {
@@ -62,6 +70,22 @@ export default defineConfig({
             },
           },
           {
+            urlPattern: /^https:\/\/firebasestorage\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'firebase-storage-images',
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/selfpay-pwa\.netlify\.app\/.*/i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'netlify-static-assets',
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
+            },
+          },
+          {
             urlPattern: /^https:\/\/selfpay-olivier\.web\.app\/.*/i,
             handler: 'StaleWhileRevalidate',
             options: {
@@ -73,19 +97,11 @@ export default defineConfig({
       },
     }),
   ],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-    },
-  },
-  optimizeDeps: {
-    include: ['react', 'react-dom', '@zxing/library', 'lucide-react'],
-  },
+  resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
+  optimizeDeps: { include: ['react', 'react-dom', '@zxing/library', 'lucide-react'] },
   cacheDir: '.vite_cache',
   build: {
-    rollupOptions: {
-      output: { manualChunks: undefined },
-    },
+    rollupOptions: { output: { manualChunks: undefined } },
     commonjsOptions: { include: [/node_modules/] },
   },
 });
