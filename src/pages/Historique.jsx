@@ -56,14 +56,14 @@ export default function Historique() {
   return (
     <div className="historique-page">
       <h1>{t('history')}</h1>
-      <p>{t('totalSpent')}: {totalDepense.toFixed(2)} FCFA</p>
+      <p>{t('totalSpent')}: {totalDepense.toFixed(2)} FC</p>
 
       {loading ? <p>{t('loadingHistory')}</p> : (
         <ul className="historique-list">
           {achats.length===0 ? <li>{t('noPurchases')}</li> :
             achats.map(a=>(
               <li key={a.id} className="historique-item">
-                <div>{a.nom || t('purchase')} - {a.montant?.toFixed(2)} FCFA</div>
+                <div>{a.nom || t('purchase')} - {a.montant?.toFixed(2)} Fc</div>
                 <div>{new Date((a.date?.seconds||Date.now()/1000)*1000).toLocaleString()}</div>
               </li>
             ))

@@ -81,6 +81,8 @@
   "removeProduct": "Supprimer le produit",
   "removeSansCodeConfirm": "Vous devez également retirer ce produit de votre panier physique. Confirmez la suppression ?",
   "ok": "OK",
+  "noProductsAvailable":"Aucun produit disponible",
+  "searchProduct":"Rechercher un produit",
   "paymentMethod": "Mode de paiement",
   "selfpayPrepaid": "SelfPay prépayé",
   "loginRequired": "Veuillez vous connecter pour payer.",

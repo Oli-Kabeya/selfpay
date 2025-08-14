@@ -4,6 +4,7 @@ import { auth } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import FooterNav from '../components/FooterNav';
 import { useTranslation } from 'react-i18next';
+import './Profile.css';
 
 export default function Profile({ theme, setTheme }) {
   const [phone, setPhone] = useState('');

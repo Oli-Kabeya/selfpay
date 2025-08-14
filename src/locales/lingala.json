@@ -77,6 +77,8 @@
   "addItemPlaceholder": "Bakisa eloko...",
   "emptyList": "Liste na yo ezali mpamba.",
   "shoppingList": "Liste ya kosomba",
+  "noProductsAvailable":"Eloko eza te",
+  "searchProduct":"Luka eloko",
   "paymentMethod": "Nzela ya kobomba",
   "selfpayPrepaid": "SelfPay na libaku",
   "loginRequired": "Soki olingi kobomba, kolonga na compte.",

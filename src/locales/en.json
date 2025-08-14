@@ -68,6 +68,8 @@
     "finish": "Finish",
     "added": "Added",
     "product": "Product",
+    "noProductsAvailable":"No products available",
+  "searchProduct":"Search product",
     "scanError": "Scan error",
   "paymentMethod": "Payment Method",
   "selfpayPrepaid": "SelfPay Prepaid",

@@ -222,151 +222,153 @@
   position: relative;
 }
 
-/* Bouton sélectionné (trigger dropdown) */
+/* ===== SearchProduits CSS ===== */
+
+/* Barre de recherche */
 .dropdown-selected {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-   background-color: var(--color-bg);
-  border: 1.8px solid var(--color-text);
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color, #ccc);
   border-radius: 8px;
-  padding: 10px 16px;
   font-size: 1rem;
-  font-weight: 400;
-  color: var(--color-text);
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(255, 169, 77, 0.25);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.dropdown-selected:hover,
-.dropdown-selected:focus {
-  border-color: #ff8c1a;
-  box-shadow: 0 4px 12px rgba(255, 140, 26, 0.3);
   outline: none;
+  cursor: text;
+  background-color: var(--input-bg, #fff);
+  color: var(--text-color, #000);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
-/* Flèche */
-.arrow {
-  margin-left: 12px;
-  font-size: 1.1rem;
-  color: #804b00;
-  user-select: none;
+.dropdown-selected:focus {
+  border-color: var(--primary-color, #007bff);
+  background-color: var(--input-bg-focus, #f9f9f9);
 }
 
-/* Image dans sélection */
-.dropdown-selected img {
-  width: 34px;
-  height: 34px;
-  object-fit: cover;
-  border-radius: 6px;
-  margin-right: 12px;
-  flex-shrink: 0;
-}
-
-/* Liste déroulante */
+/* Liste déroulante avec scroll infini */
 .dropdown-list {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  max-height: 100px; /* réduit la hauteur pour moins envahir la caméra */
-  background-color: var(--color-bg);
-  border: 1.8px solid #ffa94d;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
+  max-height: 50vh; /* ajuste selon besoin */
   overflow-y: auto;
-  z-index: 999;
-  padding: 4px 0;
+  margin-top: 4px;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 8px;
+  background-color: var(--dropdown-bg, #fff);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 
-/* Item de la liste */
+.dropdown-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dropdown-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dropdown-list::-webkit-scrollbar-thumb {
+  background-color: var(--primary-color, #007bff);
+  border-radius: 3px;
+}
+
+/* Élément de la liste */
 .dropdown-item {
   display: flex;
   align-items: center;
-  padding: 8px 14px;
+  padding: 8px 12px;
   cursor: pointer;
-  transition: background-color 0.18s ease;
-  color: #804b00;
-  font-weight: 600;
-  border-radius: 4px;
+  transition: background-color 0.2s ease;
 }
 
-.dropdown-item:not(:last-child) {
-  border-bottom: 1px solid rgba(255, 169, 77, 0.15);
+.dropdown-item:hover {
+  background-color: var(--hover-bg, #f0f0f0);
 }
 
-/* Hover/focus item */
-.dropdown-item:hover,
-.dropdown-item:focus {
-  background-color: #ffe5bf;
-  outline: none;
-}
-
-/* Image item */
 .dropdown-item img {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   object-fit: cover;
-  border-radius: 6px;
-  margin-right: 12px;
-  flex-shrink: 0;
+  border-radius: 4px;
+  margin-right: 10px;
 }
 
-/* Info texte item */
 .item-info {
   display: flex;
   flex-direction: column;
-  justify-content: center;
 }
 
-/* Nom produit */
 .item-nom {
-  font-size: 0.95rem;
-  margin-bottom: 2px;
+  font-weight: 500;
+  color: var(--text-color, #000);
 }
 
-/* Prix produit */
 .item-prix {
-  font-size: 0.8rem;
-  opacity: 0.7;
-  color: #ff8c00;
+  font-size: 0.85rem;
+  color: var(--text-muted, #666);
 }
 
-/* Bouton Ajouter */
-/* Par défaut on le cache, il sera visible via JS uniquement si produit sélectionné */
+/* État désactivé */
+.dropdown-item.disabled {
+  cursor: not-allowed;
+  color: var(--text-muted, #aaa);
+}
+
+/* Bouton d’ajout */
 .sans-codes-add {
-  margin-top: 12px;
-  width: 100%;
-  padding: 10px 0;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #fff;
-  background-color: #ff8c00;
+  margin-top: 8px;
+  padding: 8px 14px;
   border: none;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(255, 158, 58, 0.6);
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
-  user-select: none;
-  display: none;
+  background-color: var(--btn-bg, #ccc);
+  color: var(--btn-text, #fff);
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .sans-codes-add.enabled {
-  display: block;
-}
-
-.sans-codes-add:hover:not(:disabled) {
-  background: linear-gradient(135deg, #ffb347, #ffd37a);
-  box-shadow: 0 6px 16px rgba(255, 211, 122, 0.8);
+  background-color: var(--primary-color, #007bff);
 }
 
 .sans-codes-add:disabled {
-  background-color: #f3c97a;
-  box-shadow: none;
   cursor: not-allowed;
-  color: #a07800;
+  opacity: 0.6;
 }
+
+.sans-codes-add:hover.enabled {
+  background-color: var(--primary-color-hover, #0056b3);
+  transform: scale(1.03);
+}
+
+/* Message de chargement */
+.loading {
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-muted, #666);
+}
+
+/* Produit sélectionné */
+.dropdown-item[aria-selected="true"] {
+  background-color: var(--primary-color-light, #cce5ff);
+  border-left: 4px solid var(--primary-color, #007bff);
+}
+
+/* Pour les thèmes sombre/clair */
+.dark .dropdown-item[aria-selected="true"] {
+  background-color: var(--primary-color-dark, #004080);
+  border-left-color: var(--primary-color, #4dabf7);
+}
+
+/* Hover sur produit sélectionné */
+.dropdown-item[aria-selected="true"]:hover {
+  background-color: var(--primary-color-hover-light, #99ccff);
+  transition: background-color 0.2s ease;
+}
+
+.dark .dropdown-item[aria-selected="true"]:hover {
+  background-color: var(--primary-color-hover-dark, #0059b3);
+}
+
+
+
 
 .manual-entry {
   gap:10px;
@@ -437,4 +439,29 @@
   background-color: #ffaa33;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+
+.scan-countdown {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background: rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+}
+
+.scan-progress {
+  height: 100%;
+  background: #e67300;
+  transition: width 0.5s linear;
+}
+
+.scan-countdown span {
+  position: absolute;
+  right: 10px;
+  font-size: 12px;
+  color: white;
 }

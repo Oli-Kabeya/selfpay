@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { auth } from '../firebase';
+import { useLocation } from 'react-router-dom';
 import ListeOverlay from '../components/ListeOverlay';
 import { useTranslation } from 'react-i18next';
 import { X, Barcode } from 'lucide-react';
@@ -11,6 +12,8 @@ import './Scan.css';
 
 export default function Scan() {
   const { t } = useTranslation();
+  const location = useLocation(); // pour détecter les changements de page
+
   const [scanning, setScanning] = useState(false);
   const [message, setMessage] = useState('');
   const [showListeOverlay, setShowListeOverlay] = useState(false);
@@ -19,15 +22,18 @@ export default function Scan() {
   const [manualCode, setManualCode] = useState('');
   const [produitsSansCodes, setProduitsSansCodes] = useState([]);
   const [selectedProduitId, setSelectedProduitId] = useState('');
+  const [scanCountdown, setScanCountdown] = useState(10);
 
   const videoRef = useRef(null);
   const codeReaderRef = useRef(null);
   const swipeStartX = useRef(null);
   const db = getFirestore();
   const timeoutRef = useRef(null);
+  const countdownRef = useRef(null);
   const processingRef = useRef(false);
+  const scanningRef = useRef(false); // ✅ pour éviter relance scan pendant stop
 
-  // Gestion online/offline + sync
+  // --- Gestion online/offline + sync
   useEffect(() => {
     const updateStatus = () => {
       const online = checkOnline();
@@ -42,7 +48,7 @@ export default function Scan() {
     };
   }, []);
 
-  // Charger produits sans codes (Firestore ou local)
+  // --- Charger produits sans codes
   useEffect(() => {
     const fetchProduitsSansCodes = async () => {
       if (!checkOnline()) {
@@ -65,7 +71,7 @@ export default function Scan() {
     fetchProduitsSansCodes();
   }, [db]);
 
-  // Swipe pour overlay
+  // --- Swipe overlay
   useEffect(() => {
     const handleTouchStart = (e) => swipeStartX.current = e.touches[0].clientX;
     const handleTouchEnd = (e) => {
@@ -80,47 +86,31 @@ export default function Scan() {
     };
   }, []);
 
-  // Nettoyage caméra
-  useEffect(() => () => stopCamera(), []);
-
-  const startScan = async () => {
-    try {
-      setManualEntry(false);
-      processingRef.current = false;
-      codeReaderRef.current = new BrowserMultiFormatReader();
-      const constraints = { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      if (videoRef.current) videoRef.current.srcObject = stream;
-
-      timeoutRef.current = setTimeout(() => {
-        setManualEntry(true);
-        stopCamera();
-      }, 10000);
-
-      await codeReaderRef.current.decodeFromVideoDevice(null, videoRef.current, async (result) => {
-        if (result && !processingRef.current) {
-          processingRef.current = true;
-          clearTimeout(timeoutRef.current);
-          await ajouterProduit(result.getText());
-        }
-      });
-    } catch (err) {
-      console.error('Erreur caméra:', err);
-      setMessage(t('cameraError') || 'Erreur caméra');
-      setTimeout(() => setMessage(''), 2000);
-      handleCloseCamera();
-    }
-  };
-
+  // --- Stop caméra fiable
   const stopCamera = () => {
+    scanningRef.current = false; // empêche relance
     clearTimeout(timeoutRef.current);
-    if (codeReaderRef.current) { try { codeReaderRef.current.reset(); } catch {} codeReaderRef.current = null; }
-    if (videoRef.current && videoRef.current.srcObject) {
-      try { videoRef.current.srcObject.getTracks().forEach(track => track.stop()); } catch {} 
-      videoRef.current.srcObject = null;
+    clearInterval(countdownRef.current);
+    setScanCountdown(10);
+
+    if (codeReaderRef.current) {
+      try { codeReaderRef.current.reset(); } catch {}
+      codeReaderRef.current = null;
     }
+
+    if (videoRef.current && videoRef.current.srcObject) {
+      try {
+        const stream = videoRef.current.srcObject;
+        stream.getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject = null;
+      } catch {}
+    }
+
+    processingRef.current = false;
+    setScanning(false);
   };
 
+  // --- Ajouter produit scanné
   const ajouterProduit = async (code) => {
     const produit = { nom: `${t('product')} ${String(code).slice(0,5)}`, prix: Math.floor(Math.random()*10)+1, code };
     await addToPanier(produit);
@@ -144,17 +134,85 @@ export default function Scan() {
     setTimeout(() => { setMessage(''); setManualEntry(false); setManualCode(''); }, 2000);
   };
 
-  const handleManualSubmit = async () => { if(manualCode.trim()){ await ajouterProduitManuel(manualCode.trim()); handleCloseCamera(); } };
+  const handleManualSubmit = async () => { 
+    if(manualCode.trim()){ 
+      await ajouterProduitManuel(manualCode.trim()); 
+      handleCloseCamera(); 
+    } 
+  };
 
   const handleCloseCamera = () => {
-    processingRef.current = false;
     stopCamera();
-    setScanning(false);
     setMessage('');
     setManualEntry(false);
     setManualCode('');
     setSelectedProduitId('');
   };
+
+  // --- Start scan
+  const startScan = async () => {
+    if (scanningRef.current) return; // empêche double lancement
+    scanningRef.current = true;
+    setManualEntry(false);
+    processingRef.current = false;
+
+    try {
+      codeReaderRef.current = new BrowserMultiFormatReader();
+      const constraints = { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (videoRef.current) videoRef.current.srcObject = stream;
+
+      // Timeout 10s
+      timeoutRef.current = setTimeout(() => {
+        setManualEntry(true);
+        stopCamera();
+      }, 10000);
+
+      // Countdown visuel
+      let counter = 10;
+      setScanCountdown(counter);
+      countdownRef.current = setInterval(() => {
+        counter -= 1;
+        setScanCountdown(counter);
+        if (counter <= 0) clearInterval(countdownRef.current);
+      }, 1000);
+
+      codeReaderRef.current.decodeFromVideoDevice(null, videoRef.current, async (result, err) => {
+        if (!result) return;
+        if (!processingRef.current) {
+          processingRef.current = true;
+          clearTimeout(timeoutRef.current);
+          clearInterval(countdownRef.current);
+          await ajouterProduit(result.getText());
+          stopCamera();
+        }
+      });
+    } catch (err) {
+      console.error('Erreur caméra:', err);
+      setMessage(t('cameraError') || 'Erreur caméra');
+      setTimeout(() => setMessage(''), 2000);
+      handleCloseCamera();
+    }
+  };
+
+  // --- Effet auto start / stop
+  useEffect(() => {
+    if(scanning && !manualEntry) startScan();
+    else stopCamera();
+  }, [scanning, manualEntry]);
+
+  // --- Stop caméra au changement de page
+  useEffect(() => {
+    stopCamera();
+    setManualEntry(false);
+  }, [location.pathname]);
+
+  // --- Stop caméra au refresh / fermeture onglet
+  useEffect(() => {
+    const handleBeforeUnload = () => stopCamera();
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   return (
     <div className="scan-page">
@@ -162,7 +220,13 @@ export default function Scan() {
       <p className="scan-subtitle">{t('tapToAddProduct')}</p>
 
       {!scanning && !manualEntry && (
-        <div className="scan-button-container" onClick={()=>setScanning(true)} role="button" tabIndex={0}>
+        <div
+          className="scan-button-container"
+          onClick={() => setScanning(true)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => e.key === 'Enter' && setScanning(true)}
+        >
           <div className="scan-button"><Barcode size={40}/></div>
         </div>
       )}
@@ -171,7 +235,16 @@ export default function Scan() {
         <div className="camera-container">
           {message && <div className="camera-message">{message}</div>}
 
-          {scanning && !manualEntry && <video ref={videoRef} muted autoPlay playsInline className="camera-video" />}
+          {scanning && !manualEntry && (
+            <>
+              <video ref={videoRef} muted autoPlay playsInline className="camera-video" />
+              <div className="scan-countdown">
+                <div className="scan-progress" style={{ width: `${(scanCountdown/10)*100}%` }}></div>
+                <span>{scanCountdown}s</span>
+              </div>
+            </>
+          )}
+
           {manualEntry && (
             <div className="manual-entry camera-video">
               <p>{t('manualEntryPrompt')}</p>

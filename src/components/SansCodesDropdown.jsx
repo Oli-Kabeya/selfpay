@@ -1,107 +1,146 @@
-import React, { useState, useEffect } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import React, { useState, useEffect, useRef } from "react";
+import { collection, getDocs, query, orderBy, limit, startAfter } from "firebase/firestore";
 import { db } from "../firebase";
 import { useTranslation } from "react-i18next";
 import "../pages/Scan.css";
-import { 
-  isOnline, 
-  loadLocal, 
-  saveLocal, 
-  addPending, 
-  syncPendingData,  // corrigé
-  KEYS, 
-  initOfflineSync 
+import {
+  isOnline,
+  loadLocal,
+  saveLocal,
+  addPending,
+  syncPendingData,
+  KEYS,
+  initOfflineSync
 } from "../utils/offlineUtils";
 
-const LOCAL_KEY = "produits_sans_codes_offline";
+const LOCAL_KEY = "produits_offline";
+const PAGE_SIZE = 20;
 
-export default function SansCodesDropdown({ onAdd }) {
+export default function SearchProduits({ onAdd }) {
   const { t } = useTranslation();
-  const [produitsSansCodes, setProduitsSansCodes] = useState([]);
+  const [produits, setProduits] = useState([]);
+  const [filteredProduits, setFilteredProduits] = useState([]);
   const [selectedProduit, setSelectedProduit] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [lastDoc, setLastDoc] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  const listRef = useRef(null);
 
   // --- Initialisation offline sync
   useEffect(() => {
     initOfflineSync();
   }, []);
 
-  // --- Charger produits depuis Firestore ou localStorage si offline
+  // --- Chargement initial
   useEffect(() => {
-    const fetchProduits = async () => {
-      let produits = [];
-      if (isOnline()) {
-        try {
-          const querySnapshot = await getDocs(collection(db, "produits_sans_codes"));
-          produits = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          saveLocal(LOCAL_KEY, produits);
-        } catch (err) {
-          console.error("Erreur chargement Firestore:", err);
-          produits = loadLocal(LOCAL_KEY);
-        }
-      } else {
-        produits = loadLocal(LOCAL_KEY);
-      }
-      setProduitsSansCodes(produits);
-    };
-    fetchProduits();
+    fetchProduits(true);
   }, []);
 
-  // --- Sélection d’un produit
+  // --- Filtrer produits
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredProduits(produits);
+    } else {
+      const lowerTerm = searchTerm.toLowerCase();
+      setFilteredProduits(
+        produits.filter(p => p.nom.toLowerCase().includes(lowerTerm))
+      );
+    }
+  }, [searchTerm, produits]);
+
+  // --- Fonction de chargement (pagination)
+  const fetchProduits = async (reset = false) => {
+    if (!isOnline() && !reset) return;
+    setLoading(true);
+
+    try {
+      let produitsData = [];
+      if (isOnline()) {
+        let q = query(collection(db, "produits"), orderBy("nom"), limit(PAGE_SIZE));
+        if (!reset && lastDoc) {
+          q = query(collection(db, "produits"), orderBy("nom"), startAfter(lastDoc), limit(PAGE_SIZE));
+        }
+        const snapshot = await getDocs(q);
+        produitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        if (reset) {
+          saveLocal(LOCAL_KEY, produitsData);
+          setProduits(produitsData);
+        } else {
+          saveLocal(LOCAL_KEY, [...produits, ...produitsData]);
+          setProduits(prev => [...prev, ...produitsData]);
+        }
+
+        setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+        setHasMore(snapshot.docs.length === PAGE_SIZE);
+      } else {
+        // Offline
+        produitsData = loadLocal(LOCAL_KEY) || [];
+        setProduits(produitsData);
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error("Erreur chargement Firestore:", err);
+    }
+
+    setLoading(false);
+  };
+
+  // --- Scroll bas
+  const handleScroll = () => {
+    if (!listRef.current || loading || !hasMore) return;
+    const { scrollTop, scrollHeight, clientHeight } = listRef.current;
+    if (scrollTop + clientHeight >= scrollHeight - 5) {
+      fetchProduits(false);
+    }
+  };
+
   const handleSelect = (produit) => {
     setSelectedProduit(produit);
+    setSearchTerm(produit.nom);
     setIsOpen(false);
   };
 
-  // --- Ajout au panier (offline-first)
   const handleAddClick = async () => {
     if (!selectedProduit) return;
-
-    // --- Ajouter au panier local
     onAdd(selectedProduit);
 
-    // --- File de synchronisation
     if (isOnline()) {
-      // En ligne : Firestore sera mis à jour via syncPendingData
       await syncPendingData();
     } else {
-      // Offline → ajouter dans pending
       addPending(KEYS.pending.panier, selectedProduit);
     }
 
     setSelectedProduit(null);
+    setSearchTerm("");
   };
 
   return (
     <div className="sans-codes-container">
-      <div
+      <input
+        type="text"
         className="dropdown-selected"
-        onClick={() => setIsOpen(!isOpen)}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === 'Enter' && setIsOpen(!isOpen)}
-        aria-haspopup="listbox"
-        aria-expanded={isOpen}
-      >
-        {selectedProduit ? (
-          <>
-            <img
-              src={selectedProduit.imageUrl}
-              alt={selectedProduit.nom}
-              loading="lazy"
-              onError={(e) => { e.target.src = "/icons/default_product.png"; }}
-            />
-            <span>{selectedProduit.nom} - {Number(selectedProduit.prix).toFixed(2)} FCFA</span>
-          </>
-        ) : (
-          <span>{t('selectSansCodeProduct') || "Sélectionner un produit"}</span>
-        )}
-        <span className="arrow">{isOpen ? "▲" : "▼"}</span>
-      </div>
+        placeholder={t('searchProduct')}
+        value={searchTerm}
+        onChange={(e) => {
+          setSearchTerm(e.target.value);
+          setIsOpen(true);
+        }}
+        onFocus={() => setIsOpen(true)}
+      />
 
       {isOpen && (
-        <div className="dropdown-list" role="listbox" tabIndex={-1}>
-          {produitsSansCodes.map(p => (
+        <div
+          className="dropdown-list"
+          ref={listRef}
+          onScroll={handleScroll}
+          role="listbox"
+          tabIndex={-1}
+        >
+          {filteredProduits.map(p => (
             <div
               key={p.id}
               className="dropdown-item"
@@ -111,21 +150,16 @@ export default function SansCodesDropdown({ onAdd }) {
               tabIndex={0}
               onKeyDown={(e) => e.key === 'Enter' && handleSelect(p)}
             >
-              <img
-                src={p.imageUrl}
-                alt={p.nom}
-                loading="lazy"
-                onError={(e) => { e.target.src = "/icons/default_product.png"; }}
-              />
               <div className="item-info">
                 <span className="item-nom">{p.nom}</span>
-                <span className="item-prix">{Number(p.prix).toFixed(2)} FCFA</span>
+                <span className="item-prix">{Number(p.prix).toFixed(2)} Fc</span>
               </div>
             </div>
           ))}
-          {produitsSansCodes.length === 0 && (
+          {loading && <div className="loading">{t('loading')}</div>}
+          {!loading && filteredProduits.length === 0 && (
             <div className="dropdown-item disabled">
-              {t('noProductsAvailable') || "Aucun produit disponible"}
+              {t('noProductsAvailable')}
             </div>
           )}
         </div>
@@ -136,7 +170,7 @@ export default function SansCodesDropdown({ onAdd }) {
         onClick={handleAddClick}
         disabled={!selectedProduit}
       >
-        {t('add') || "Ajouter"}
+        {t('add')}
       </button>
     </div>
   );
