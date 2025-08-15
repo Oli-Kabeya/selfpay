@@ -16,27 +16,24 @@ import i18n from './i18n';
 import FixedTriangles from './components/FixedTriangles';
 import ListeOverlay from './components/ListeOverlay';
 import { FooterVisibilityProvider } from './context/FooterVisibilityContext';
+import { PanierProvider } from './context/PanierContext';
 import { initOfflineSync } from './utils/offlineUtils';
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [initialRoute, setInitialRoute] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
-  
-  // isOnline natif (navigator.onLine)
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  // isReallyOnline: online + bon ping
   const [isReallyOnline, setIsReallyOnline] = useState(navigator.onLine);
-
   const networkCheckIntervalRef = useRef(null);
 
-  // Thème
+  // --- Thème
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Ecoute événements online/offline natifs
+  // --- Online/offline natif
   useEffect(() => {
     const updateOnlineStatus = () => setIsOnline(navigator.onLine);
     window.addEventListener('online', updateOnlineStatus);
@@ -47,28 +44,22 @@ export default function App() {
     };
   }, []);
 
-  // Fonction ping rapide pour vérifier qualité réseau
+  // --- Vérification qualité réseau
   const checkNetworkQuality = async () => {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // timeout 3s
-
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
       const start = performance.now();
       await fetch('/favicon.ico', { method: 'HEAD', cache: 'no-store', signal: controller.signal });
       clearTimeout(timeoutId);
-
       const duration = performance.now() - start;
-
-      // Si réponse lente (> 3s) on considère dégradé
       return duration < 3000;
     } catch {
-      return false; // Erreur ou timeout => réseau instable
+      return false;
     }
   };
 
-  // Surveillance réseau + qualité
   useEffect(() => {
-    // Fonction pour mettre à jour isReallyOnline
     const evaluateNetwork = async () => {
       if (!navigator.onLine) {
         setIsReallyOnline(false);
@@ -78,27 +69,21 @@ export default function App() {
       setIsReallyOnline(good);
     };
 
-    evaluateNetwork(); // premier test
-
-    // Puis test toutes les 10 secondes
+    evaluateNetwork();
     networkCheckIntervalRef.current = setInterval(evaluateNetwork, 10000);
-
     return () => clearInterval(networkCheckIntervalRef.current);
   }, []);
 
-  // Splash + auth + route initiale
+  // --- Auth + splash
   useEffect(() => {
-    const timer = setTimeout(() => {
-      auth.onAuthStateChanged((user) => {
-        setInitialRoute(user ? '/scan' : '/auth');
-        setShowSplash(false);
-      });
-    }, 3000);
-
-    return () => clearTimeout(timer);
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setInitialRoute(user ? '/scan' : '/auth');
+      setShowSplash(false);
+    });
+    return () => unsubscribe();
   }, []);
 
-  // Initialisation sync offline
+  // --- Init offline sync
   useEffect(() => {
     initOfflineSync();
   }, []);
@@ -110,12 +95,14 @@ export default function App() {
     <I18nextProvider i18n={i18n}>
       <Router>
         <FooterVisibilityProvider>
-          <AppContent
-            initialRoute={initialRoute}
-            theme={theme}
-            setTheme={setTheme}
-            isOnline={isReallyOnline} // <-- on transmet la vraie qualité réseau
-          />
+          <PanierProvider>
+            <AppContent
+              initialRoute={initialRoute}
+              theme={theme}
+              setTheme={setTheme}
+              isOnline={isReallyOnline}
+            />
+          </PanierProvider>
         </FooterVisibilityProvider>
       </Router>
     </I18nextProvider>
@@ -126,7 +113,6 @@ function AppContent({ initialRoute, theme, setTheme, isOnline }) {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
-
   const showListIcon = currentPath === '/scan' || currentPath === '/panier';
   const [showListeOverlay, setShowListeOverlay] = useState(false);
 

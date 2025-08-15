@@ -1,5 +1,4 @@
-// utils/offlineUtils.js
-import { getFirestore, collection, doc, getDoc, addDoc, setDoc } from "firebase/firestore";
+import { getFirestore, collection, doc, addDoc, setDoc, getDoc } from "firebase/firestore";
 import { auth } from "../firebase";
 
 const db = getFirestore();
@@ -21,7 +20,7 @@ export const KEYS = {
 const SYNC_INTERVAL_MS = 60 * 60 * 1000; // 1h
 let lastSync = 0;
 
-// 📌 Charger des données locales génériques
+// 📌 Charger données locales
 export function loadLocal(key) {
   try {
     return JSON.parse(localStorage.getItem(key)) || [];
@@ -30,34 +29,31 @@ export function loadLocal(key) {
   }
 }
 
-// 📌 Sauvegarder en local générique
+// 📌 Sauvegarder en local
 export function saveLocal(key, data) {
   localStorage.setItem(key, JSON.stringify(data));
 }
-
-// 🔹 Spécifique liste de courses
-export const loadListeFromStorage = () => loadLocal(KEYS.liste);
-export const saveListeToStorage = (items) => saveLocal(KEYS.liste, items);
 
 // 📌 Détection connexion
 export function isOnline() {
   return navigator.onLine;
 }
 
-// 📌 Ajouter à la file de sync
+// 📌 Ajouter à pending
 export function addPending(key, item) {
   const pending = loadLocal(key);
   pending.push(item);
   saveLocal(key, pending);
 }
 
-// 📌 Fusionner données Firestore et LocalStorage (sans doublons)
-export function mergeData(localData, remoteData, idField = "id") {
-  const map = new Map();
-  [...localData, ...remoteData].forEach(item => {
-    map.set(item[idField], { ...map.get(item[idField]), ...item });
-  });
-  return Array.from(map.values());
+// 📌 Récupérer pending panier
+export function getPendingPanier() {
+  return loadLocal(KEYS.pending.panier);
+}
+
+// 📌 Effacer pending panier
+export function clearPendingPanier() {
+  saveLocal(KEYS.pending.panier, []);
 }
 
 // 🔄 Synchronisation générique avec Firestore
@@ -72,15 +68,26 @@ export async function syncPendingData() {
   // 🔹 Sync panier
   const pendingPanier = loadLocal(KEYS.pending.panier);
   if (pendingPanier.length) {
-    for (const product of pendingPanier) {
-      await addDoc(collection(db, "achats", uid, "liste"), product);
-      await addDoc(collection(db, "transactions_anonymes"), {
-        ...product,
-        uid,
-        timestamp: new Date()
-      });
+    try {
+      const ref = doc(db, "paniers", uid);
+      const snap = await getDoc(ref);
+      let currentArticles = snap.exists() ? snap.data().articles || [] : [];
+
+      for (const action of pendingPanier) {
+        if (action.action === "add") currentArticles.push(action.product);
+        if (action.action === "remove") {
+          currentArticles = currentArticles.filter(p =>
+            (action.code ? p.code !== action.code : true) &&
+            (action.idSansCode ? p.idSansCode !== action.idSansCode : true)
+          );
+        }
+      }
+
+      await setDoc(ref, { articles: currentArticles, updatedAt: new Date() }, { merge: true });
+      saveLocal(KEYS.pending.panier, []);
+    } catch (err) {
+      console.error("Erreur sync panier:", err);
     }
-    saveLocal(KEYS.pending.panier, []);
   }
 
   // 🔹 Sync historique
@@ -92,7 +99,7 @@ export async function syncPendingData() {
     saveLocal(KEYS.pending.historique, []);
   }
 
-  // 🔹 Sync liste de courses
+  // 🔹 Sync liste
   const pendingListe = loadLocal(KEYS.pending.liste);
   if (pendingListe.length) {
     for (const item of pendingListe) {
@@ -110,10 +117,38 @@ export async function addToPanier(product) {
   panier.push(product);
   saveLocal(KEYS.panier, panier);
 
-  if (isOnline()) {
-    await syncPendingData();
+  if (auth.currentUser && isOnline()) {
+    try {
+      const ref = doc(db, "paniers", auth.currentUser.uid);
+      const snap = await getDoc(ref);
+      const currentArticles = snap.exists() ? snap.data().articles || [] : [];
+      await setDoc(ref, { articles: [...currentArticles, product], updatedAt: new Date() }, { merge: true });
+    } catch (err) {
+      console.error("Erreur ajout panier Firestore, fallback offline:", err);
+      addPending(KEYS.pending.panier, { action: "add", product });
+    }
   } else {
-    addPending(KEYS.pending.panier, product);
+    addPending(KEYS.pending.panier, { action: "add", product });
+  }
+}
+
+// 📦 Supprimer du panier
+export async function removeFromPanier(product) {
+  const panier = loadLocal(KEYS.panier).filter(p =>
+    (product.code ? p.code !== product.code : true) &&
+    (product.idSansCode ? p.idSansCode !== product.idSansCode : true)
+  );
+  saveLocal(KEYS.panier, panier);
+
+  if (auth.currentUser && isOnline()) {
+    try {
+      const ref = doc(db, "paniers", auth.currentUser.uid);
+      await setDoc(ref, { articles: panier, updatedAt: new Date() }, { merge: true });
+    } catch {
+      addPending(KEYS.pending.panier, { action: "remove", code: product.code, idSansCode: product.idSansCode });
+    }
+  } else {
+    addPending(KEYS.pending.panier, { action: "remove", code: product.code, idSansCode: product.idSansCode });
   }
 }
 
@@ -123,11 +158,8 @@ export async function addToHistorique(transaction) {
   historique.push(transaction);
   saveLocal(KEYS.historique, historique);
 
-  if (isOnline()) {
-    await syncPendingData();
-  } else {
-    addPending(KEYS.pending.historique, transaction);
-  }
+  if (isOnline()) await syncPendingData();
+  else addPending(KEYS.pending.historique, transaction);
 }
 
 // 📦 Ajouter à la liste de courses
@@ -136,11 +168,8 @@ export async function addToListe(item) {
   liste.push(item);
   saveLocal(KEYS.liste, liste);
 
-  if (isOnline()) {
-    await syncPendingData();
-  } else {
-    addPending(KEYS.pending.liste, item);
-  }
+  if (isOnline()) await syncPendingData();
+  else addPending(KEYS.pending.liste, item);
 }
 
 // 📦 Synchroniser le profil
@@ -156,9 +185,9 @@ export async function syncProfil() {
   return {};
 }
 
-// 🛠 Initialisation automatique offline
+// 🛠 Initialisation sync offline
 export function initOfflineSync() {
   window.addEventListener("online", syncPendingData);
   syncPendingData(); // tentative au démarrage
-  setInterval(syncPendingData, SYNC_INTERVAL_MS); // sync automatique toutes les heures
+  setInterval(syncPendingData, SYNC_INTERVAL_MS);
 }

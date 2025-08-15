@@ -1,102 +1,50 @@
 import React, { useState, useEffect, useRef } from "react";
-import { collection, getDocs, query, orderBy, limit, startAfter } from "firebase/firestore";
-import { db } from "../firebase";
 import { useTranslation } from "react-i18next";
+import { addPending, isOnline, syncPendingData, KEYS } from "../utils/offlineUtils";
+import { fetchProductsFromAPI } from "../utils/openFoodFacts"; // fonction que tu auras à créer pour rechercher l'API
 import "../pages/Scan.css";
-import {
-  isOnline,
-  loadLocal,
-  saveLocal,
-  addPending,
-  syncPendingData,
-  KEYS,
-  initOfflineSync
-} from "../utils/offlineUtils";
-
-const LOCAL_KEY = "produits_offline";
-const PAGE_SIZE = 20;
 
 export default function SearchProduits({ onAdd }) {
   const { t } = useTranslation();
-  const [produits, setProduits] = useState([]);
+  const [produitsAPI, setProduitsAPI] = useState([]);
   const [filteredProduits, setFilteredProduits] = useState([]);
   const [selectedProduit, setSelectedProduit] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [lastDoc, setLastDoc] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
 
   const listRef = useRef(null);
 
-  // --- Initialisation offline sync
-  useEffect(() => {
-    initOfflineSync();
-  }, []);
-
-  // --- Chargement initial
-  useEffect(() => {
-    fetchProduits(true);
-  }, []);
-
-  // --- Filtrer produits
+  // --- Recherche approximative via API
   useEffect(() => {
     if (!searchTerm.trim()) {
-      setFilteredProduits(produits);
-    } else {
-      const lowerTerm = searchTerm.toLowerCase();
-      setFilteredProduits(
-        produits.filter(p => p.nom.toLowerCase().includes(lowerTerm))
-      );
+      setFilteredProduits([]);
+      return;
     }
-  }, [searchTerm, produits]);
 
-  // --- Fonction de chargement (pagination)
-  const fetchProduits = async (reset = false) => {
-    if (!isOnline() && !reset) return;
-    setLoading(true);
-
-    try {
-      let produitsData = [];
-      if (isOnline()) {
-        let q = query(collection(db, "produits"), orderBy("nom"), limit(PAGE_SIZE));
-        if (!reset && lastDoc) {
-          q = query(collection(db, "produits"), orderBy("nom"), startAfter(lastDoc), limit(PAGE_SIZE));
-        }
-        const snapshot = await getDocs(q);
-        produitsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        if (reset) {
-          saveLocal(LOCAL_KEY, produitsData);
-          setProduits(produitsData);
-        } else {
-          saveLocal(LOCAL_KEY, [...produits, ...produitsData]);
-          setProduits(prev => [...prev, ...produitsData]);
-        }
-
-        setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
-        setHasMore(snapshot.docs.length === PAGE_SIZE);
-      } else {
-        // Offline
-        produitsData = loadLocal(LOCAL_KEY) || [];
-        setProduits(produitsData);
-        setHasMore(false);
+    const fetchAndFilter = async () => {
+      setLoading(true);
+      try {
+        const results = await fetchProductsFromAPI(searchTerm);
+        // Recherche approximative sur le nom (fuzzy match simple)
+        const lowerTerm = searchTerm.toLowerCase();
+        const filtered = results
+          .map(p => ({
+            ...p,
+            matchScore: p.nom.toLowerCase().includes(lowerTerm) ? 1 : 0
+          }))
+          .sort((a, b) => b.matchScore - a.matchScore);
+        setProduitsAPI(filtered);
+        setFilteredProduits(filtered);
+      } catch (err) {
+        console.error("Erreur recherche API:", err);
+        setFilteredProduits([]);
       }
-    } catch (err) {
-      console.error("Erreur chargement Firestore:", err);
-    }
+      setLoading(false);
+    };
 
-    setLoading(false);
-  };
-
-  // --- Scroll bas
-  const handleScroll = () => {
-    if (!listRef.current || loading || !hasMore) return;
-    const { scrollTop, scrollHeight, clientHeight } = listRef.current;
-    if (scrollTop + clientHeight >= scrollHeight - 5) {
-      fetchProduits(false);
-    }
-  };
+    fetchAndFilter();
+  }, [searchTerm]);
 
   const handleSelect = (produit) => {
     setSelectedProduit(produit);
@@ -116,6 +64,10 @@ export default function SearchProduits({ onAdd }) {
 
     setSelectedProduit(null);
     setSearchTerm("");
+  };
+
+  const handleScroll = () => {
+    // Optionnel : si l'API supporte pagination, tu peux ajouter ici
   };
 
   return (
@@ -142,7 +94,7 @@ export default function SearchProduits({ onAdd }) {
         >
           {filteredProduits.map(p => (
             <div
-              key={p.id}
+              key={p.code || p.id || p.nom} 
               className="dropdown-item"
               onClick={() => handleSelect(p)}
               role="option"
@@ -152,7 +104,7 @@ export default function SearchProduits({ onAdd }) {
             >
               <div className="item-info">
                 <span className="item-nom">{p.nom}</span>
-                <span className="item-prix">{Number(p.prix).toFixed(2)} Fc</span>
+                <span className="item-prix">{Number(p.prix || 1).toFixed(2)} Fc</span>
               </div>
             </div>
           ))}

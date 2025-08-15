@@ -1,26 +1,24 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth } from '../firebase';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { usePanier } from '../context/PanierContext';
 import ListeOverlay from '../components/ListeOverlay';
 import { useTranslation } from 'react-i18next';
-import { loadLocal, saveLocal, addToPanier, syncPendingData, isOnline as checkOnline } from '../utils/offlineUtils';
+import { loadLocal, KEYS, syncPendingData, isOnline as checkOnline } from '../utils/offlineUtils';
 import './Panier.css';
 
 export default function Panier() {
+  const { panier, removeFromPanier } = usePanier();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [panier, setPanier] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showListeOverlay, setShowListeOverlay] = useState(false);
   const [message, setMessage] = useState('');
   const [isOnline, setIsOnline] = useState(checkOnline());
   const [modalVisible, setModalVisible] = useState(false);
   const [produitToDelete, setProduitToDelete] = useState(null);
-  const db = getFirestore();
   const swipeStartX = useRef(null);
 
-  // Gestion statut online/offline
+  // --- Gestion statut online/offline
   useEffect(() => {
     const handleOnline = () => { setIsOnline(true); syncPendingData(); };
     const handleOffline = () => setIsOnline(false);
@@ -32,44 +30,39 @@ export default function Panier() {
     };
   }, []);
 
-  // Chargement panier depuis localStorage + Firestore si online
+  // --- Chargement initial panier
   useEffect(() => {
-    const localPanier = loadLocal('panier') || [];
-    setPanier(localPanier);
+    if ((!panier || panier.length === 0)) {
+      const localPanier = loadLocal(KEYS.panier) || [];
+      localPanier.forEach(item => removeFromPanier(item)); // sync avec context si nécessaire
+    }
     setLoading(false);
   }, []);
 
-  // Sauvegarde automatique local
-  useEffect(() => {
-    saveLocal('panier', panier);
-  }, [panier]);
-
+  // --- Total
   const total = panier.reduce((sum, item) => sum + (item.prix || 0), 0);
 
-  // Suppression produit
+  // --- Suppression produit
   const confirmRemoveProduit = (produit) => {
     setProduitToDelete(produit);
     setModalVisible(true);
   };
-  const validerSuppression = async () => {
+
+  const validerSuppression = () => {
     if (!produitToDelete) return;
-    const updated = panier.filter(item => item.code !== produitToDelete.code);
-    setPanier(updated);
-    saveLocal('panier', updated);
-
-    if (auth.currentUser && isOnline) {
-      const ref = doc(db, 'paniers', auth.currentUser.uid);
-      await setDoc(ref, { articles: updated }, { merge: true });
-    }
-
+    removeFromPanier(produitToDelete);
     setModalVisible(false);
     setProduitToDelete(null);
-    setMessage(t('productRemoved'));
+    setMessage(t('productRemoved') || 'Produit supprimé');
     setTimeout(() => setMessage(''), 2000);
   };
-  const annulerSuppression = () => { setModalVisible(false); setProduitToDelete(null); };
 
-  // Swipe pour overlay liste
+  const annulerSuppression = () => {
+    setModalVisible(false);
+    setProduitToDelete(null);
+  };
+
+  // --- Swipe pour overlay liste
   useEffect(() => {
     const handleTouchStart = e => swipeStartX.current = e.touches[0].clientX;
     const handleTouchEnd = e => {
@@ -89,7 +82,7 @@ export default function Panier() {
       {message && <div className="camera-message">{message}</div>}
 
       <div className={`panier-content scrollable-content${modalVisible ? ' modal-blur' : ''}`}>
-        <h1 className="total-header">{t('total')}: {total.toFixed(2)} FCFA</h1>
+        <h1 className="total-header">{t('total')}: {total.toFixed(2)} FC</h1>
 
         {!isOnline && <p className="offline-warning">{t('offlineCartNotice') || 'Mode hors-ligne. Données locales utilisées.'}</p>}
 
@@ -102,7 +95,7 @@ export default function Panier() {
             {panier.map((item, idx) => (
               <li key={idx} className="product-item">
                 <div className="item-name">{item.nom}</div>
-                <div className="item-price">{item.prix.toFixed(2)} FCFA</div>
+                <div className="item-price">{item.prix.toFixed(2)} FC</div>
                 <button
                   className="remove-btn"
                   aria-label={t('removeProduct')}

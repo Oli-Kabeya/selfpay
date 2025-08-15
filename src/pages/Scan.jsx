@@ -1,18 +1,20 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
-import { auth } from '../firebase';
 import { useLocation } from 'react-router-dom';
-import ListeOverlay from '../components/ListeOverlay';
 import { useTranslation } from 'react-i18next';
 import { X, Barcode } from 'lucide-react';
-import { loadLocal, saveLocal, addToPanier, syncPendingData, isOnline as checkOnline } from '../utils/offlineUtils';
+import { usePanier } from '../context/PanierContext';
+import ListeOverlay from '../components/ListeOverlay';
+import SuggestionsModal from '../components/SuggestionsModal';
 import SansCodesDropdown from '../components/SansCodesDropdown';
+import { fetchClosestProduct, fetchSuggestions } from '../utils/openFoodFacts';
+import { loadLocal, saveLocal, syncPendingData, isOnline as checkOnline } from '../utils/offlineUtils';
 import './Scan.css';
 
 export default function Scan() {
+  const { addToPanier } = usePanier();
   const { t } = useTranslation();
-  const location = useLocation(); // pour détecter les changements de page
+  const location = useLocation();
 
   const [scanning, setScanning] = useState(false);
   const [message, setMessage] = useState('');
@@ -21,17 +23,17 @@ export default function Scan() {
   const [manualEntry, setManualEntry] = useState(false);
   const [manualCode, setManualCode] = useState('');
   const [produitsSansCodes, setProduitsSansCodes] = useState([]);
-  const [selectedProduitId, setSelectedProduitId] = useState('');
   const [scanCountdown, setScanCountdown] = useState(10);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const videoRef = useRef(null);
   const codeReaderRef = useRef(null);
   const swipeStartX = useRef(null);
-  const db = getFirestore();
   const timeoutRef = useRef(null);
   const countdownRef = useRef(null);
   const processingRef = useRef(false);
-  const scanningRef = useRef(false); // ✅ pour éviter relance scan pendant stop
+  const scanningRef = useRef(false);
 
   // --- Gestion online/offline + sync
   useEffect(() => {
@@ -50,31 +52,14 @@ export default function Scan() {
 
   // --- Charger produits sans codes
   useEffect(() => {
-    const fetchProduitsSansCodes = async () => {
-      if (!checkOnline()) {
-        const cached = loadLocal('produitsSansCodes') || [];
-        setProduitsSansCodes(cached);
-        return;
-      }
-      try {
-        const collRef = collection(db, 'produits_sans_codes');
-        const snapshot = await getDocs(collRef);
-        const produits = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        setProduitsSansCodes(produits);
-        saveLocal('produitsSansCodes', produits);
-      } catch (err) {
-        console.error('Erreur chargement produits sans codes:', err);
-        const cached = loadLocal('produitsSansCodes') || [];
-        setProduitsSansCodes(cached);
-      }
-    };
-    fetchProduitsSansCodes();
-  }, [db]);
+    const cached = loadLocal('produitsSansCodes') || [];
+    setProduitsSansCodes(cached);
+  }, []);
 
   // --- Swipe overlay
   useEffect(() => {
-    const handleTouchStart = (e) => swipeStartX.current = e.touches[0].clientX;
-    const handleTouchEnd = (e) => {
+    const handleTouchStart = e => swipeStartX.current = e.touches[0].clientX;
+    const handleTouchEnd = e => {
       const deltaX = e.changedTouches[0].clientX - swipeStartX.current;
       if (deltaX < -50) setShowListeOverlay(true);
     };
@@ -86,9 +71,9 @@ export default function Scan() {
     };
   }, []);
 
-  // --- Stop caméra fiable
+  // --- Stop caméra
   const stopCamera = () => {
-    scanningRef.current = false; // empêche relance
+    scanningRef.current = false;
     clearTimeout(timeoutRef.current);
     clearInterval(countdownRef.current);
     setScanCountdown(10);
@@ -99,46 +84,12 @@ export default function Scan() {
     }
 
     if (videoRef.current && videoRef.current.srcObject) {
-      try {
-        const stream = videoRef.current.srcObject;
-        stream.getTracks().forEach(track => track.stop());
-        videoRef.current.srcObject = null;
-      } catch {}
+      try { videoRef.current.srcObject.getTracks().forEach(track => track.stop()); } catch {}
+      videoRef.current.srcObject = null;
     }
 
     processingRef.current = false;
     setScanning(false);
-  };
-
-  // --- Ajouter produit scanné
-  const ajouterProduit = async (code) => {
-    const produit = { nom: `${t('product')} ${String(code).slice(0,5)}`, prix: Math.floor(Math.random()*10)+1, code };
-    await addToPanier(produit);
-    setMessage(t('productAdded') || 'Produit ajouté');
-    setTimeout(() => { setMessage(''); handleCloseCamera(); }, 2000);
-  };
-
-  const ajouterProduitSansCodeDirect = async (produit) => {
-    if (!produit) return;
-    const produitAjout = { nom: produit.nom, prix: produit.prix, code: '', idSansCode: produit.id };
-    await addToPanier(produitAjout);
-    setMessage(t('productAdded') || 'Produit ajouté');
-    setTimeout(() => { setMessage(''); handleCloseCamera(); }, 2000);
-  };
-
-  const ajouterProduitManuel = async (code) => {
-    if (!code.trim()) { setMessage(t('emptyCodeError')); setTimeout(()=>setMessage(''),3000); return; }
-    const produit = { nom: `${t('manualProduct')} ${code.slice(0,5)}`, prix: 1, code };
-    await addToPanier(produit);
-    setMessage(t('productAdded'));
-    setTimeout(() => { setMessage(''); setManualEntry(false); setManualCode(''); }, 2000);
-  };
-
-  const handleManualSubmit = async () => { 
-    if(manualCode.trim()){ 
-      await ajouterProduitManuel(manualCode.trim()); 
-      handleCloseCamera(); 
-    } 
   };
 
   const handleCloseCamera = () => {
@@ -146,12 +97,62 @@ export default function Scan() {
     setMessage('');
     setManualEntry(false);
     setManualCode('');
-    setSelectedProduitId('');
+  };
+
+  // --- Ajouter produit scanné
+  const ajouterProduit = async (code) => {
+    if (!code) return;
+
+    let produit = await fetchClosestProduct(code);
+
+    if (!produit) {
+      const apiSuggestions = await fetchSuggestions(code);
+      if (apiSuggestions && apiSuggestions.length) {
+        setSuggestions(apiSuggestions);
+        setShowSuggestions(true);
+        return; // attendre sélection
+      } else {
+        produit = { nom: `${t('manualProduct')} ${code.slice(0,5)}`, prix: 1, code };
+      }
+    }
+
+    if (produit) {
+      await addToPanier(produit);
+      setMessage(t('productAdded') || 'Produit ajouté');
+      setTimeout(() => setMessage(''), 1500);
+      handleCloseCamera();
+    }
+  };
+
+  const ajouterProduitSansCodeDirect = async (produit) => {
+    if (!produit) return;
+    const produitAjout = { nom: produit.nom, prix: produit.prix, code: '', idSansCode: produit.id };
+    await addToPanier(produitAjout);
+    setMessage(t('productAdded') || 'Produit ajouté');
+    setTimeout(() => setMessage(''), 1500);
+    handleCloseCamera();
+  };
+
+  const ajouterProduitManuel = async (code) => {
+    if (!code.trim()) { setMessage(t('emptyCodeError')); setTimeout(()=>setMessage(''),3000); return; }
+    const produit = { nom: `${t('manualProduct')} ${code.slice(0,5)}`, prix: 1, code };
+    await addToPanier(produit);
+    setMessage(t('productAdded'));
+    setTimeout(() => setMessage(''), 1500);
+    setManualEntry(false);
+    setManualCode('');
+    handleCloseCamera();
+  };
+
+  const handleManualSubmit = async () => {
+    if(manualCode.trim()){ 
+      await ajouterProduitManuel(manualCode.trim()); 
+    } 
   };
 
   // --- Start scan
   const startScan = async () => {
-    if (scanningRef.current) return; // empêche double lancement
+    if (scanningRef.current) return;
     scanningRef.current = true;
     setManualEntry(false);
     processingRef.current = false;
@@ -163,10 +164,7 @@ export default function Scan() {
       if (videoRef.current) videoRef.current.srcObject = stream;
 
       // Timeout 10s
-      timeoutRef.current = setTimeout(() => {
-        setManualEntry(true);
-        stopCamera();
-      }, 10000);
+      timeoutRef.current = setTimeout(() => { setManualEntry(true); stopCamera(); }, 10000);
 
       // Countdown visuel
       let counter = 10;
@@ -177,14 +175,13 @@ export default function Scan() {
         if (counter <= 0) clearInterval(countdownRef.current);
       }, 1000);
 
-      codeReaderRef.current.decodeFromVideoDevice(null, videoRef.current, async (result, err) => {
+      codeReaderRef.current.decodeFromVideoDevice(null, videoRef.current, async (result) => {
         if (!result) return;
         if (!processingRef.current) {
           processingRef.current = true;
           clearTimeout(timeoutRef.current);
           clearInterval(countdownRef.current);
           await ajouterProduit(result.getText());
-          stopCamera();
         }
       });
     } catch (err) {
@@ -195,7 +192,7 @@ export default function Scan() {
     }
   };
 
-  // --- Effet auto start / stop
+  // --- Auto start / stop
   useEffect(() => {
     if(scanning && !manualEntry) startScan();
     else stopCamera();
@@ -220,13 +217,7 @@ export default function Scan() {
       <p className="scan-subtitle">{t('tapToAddProduct')}</p>
 
       {!scanning && !manualEntry && (
-        <div
-          className="scan-button-container"
-          onClick={() => setScanning(true)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={e => e.key === 'Enter' && setScanning(true)}
-        >
+        <div className="scan-button-container" onClick={() => setScanning(true)} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && setScanning(true)}>
           <div className="scan-button"><Barcode size={40}/></div>
         </div>
       )}
@@ -268,6 +259,19 @@ export default function Scan() {
           </div>
         </div>
       )}
+
+      <SuggestionsModal
+        suggestions={suggestions}
+        onClose={() => setShowSuggestions(false)}
+        onSelect={async (p) => {
+          setShowSuggestions(false);
+          setSuggestions([]);
+          await addToPanier(p);
+          setMessage(t('productAdded') || 'Produit ajouté');
+          setTimeout(() => setMessage(''), 1500);
+          handleCloseCamera();
+        }}
+      />
 
       {showListeOverlay && <ListeOverlay onClose={()=>setShowListeOverlay(false)} />}
     </div>

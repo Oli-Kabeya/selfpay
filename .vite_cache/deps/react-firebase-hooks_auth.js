@@ -1,4 +1,7 @@
 import {
+  require_react
+} from "./chunk-32E4H3EV.js";
+import {
   FacebookAuthProvider,
   GithubAuthProvider,
   GoogleAuthProvider,
@@ -19,9 +22,6 @@ import {
   verifyBeforeUpdateEmail
 } from "./chunk-GCKS2SCC.js";
 import "./chunk-5I3ZSOFQ.js";
-import {
-  require_react
-} from "./chunk-32E4H3EV.js";
 import {
   __toESM
 } from "./chunk-G3PMV62Z.js";

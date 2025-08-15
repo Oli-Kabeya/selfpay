@@ -18,8 +18,8 @@
 }
 
 :root[data-theme='dark'] {
-  --color-bg: rgba(31, 41, 55, 0.95);
-  --color-card: rgba(45, 55, 72, 0.85);
+  --color-bg:  #121212;
+  --color-card: #121212;
   --color-text: #f9f9f9;
   --color-primary: #ff6b00;
 

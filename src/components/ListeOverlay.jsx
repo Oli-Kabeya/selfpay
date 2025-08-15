@@ -4,7 +4,7 @@ import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import './ListeOverlay.css';
-import { loadListeFromStorage, saveListeToStorage } from '../utils/offlineUtils';
+import { loadLocal, KEYS } from '../utils/offlineUtils';
 
 export default function ListeOverlay({ onClose }) {
   const { t } = useTranslation();
@@ -16,7 +16,8 @@ export default function ListeOverlay({ onClose }) {
 
   useEffect(() => {
     const fetchList = async () => {
-      const localData = loadListeFromStorage();
+      // ✅ Charger la liste depuis localStorage
+      const localData = loadLocal(KEYS.liste);
       setItems(localData);
       setLoading(false);
 
@@ -30,7 +31,8 @@ export default function ListeOverlay({ onClose }) {
           const data = docSnap.data();
           const firestoreItems = data.items || [];
           setItems(firestoreItems);
-          saveListeToStorage(firestoreItems);
+          // Ici on peut sauvegarder en local si tu veux
+          // saveLocal(KEYS.liste, firestoreItems); // facultatif
         }
       } catch (error) {
         console.error('Erreur de chargement:', error);
@@ -41,7 +43,7 @@ export default function ListeOverlay({ onClose }) {
 
   const updateFirestoreList = async (newItems) => {
     setItems(newItems);
-    saveListeToStorage(newItems);
+    // saveLocal(KEYS.liste, newItems); // facultatif
     const user = auth.currentUser;
     if (!user) return;
     try {

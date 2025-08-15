@@ -1,130 +1,127 @@
 {
-  "hash": "d281d63f",
+  "hash": "8ce44867",
   "configHash": "c7e2d7e2",
-  "lockfileHash": "a2e1746a",
-  "browserHash": "74703da6",
+  "lockfileHash": "640a00db",
+  "browserHash": "798c78c8",
   "optimized": {
     "react": {
       "src": "../../node_modules/react/index.js",
       "file": "react.js",
-      "fileHash": "8639d7be",
+      "fileHash": "c21cb336",
       "needsInterop": true
     },
     "react-dom": {
       "src": "../../node_modules/react-dom/index.js",
       "file": "react-dom.js",
-      "fileHash": "8d19b14f",
+      "fileHash": "ff6a5b89",
       "needsInterop": true
     },
     "@zxing/library": {
       "src": "../../node_modules/@zxing/library/esm/index.js",
       "file": "@zxing_library.js",
-      "fileHash": "9a7c289a",
+      "fileHash": "5061469f",
       "needsInterop": false
     },
     "lucide-react": {
       "src": "../../node_modules/lucide-react/dist/esm/lucide-react.js",
       "file": "lucide-react.js",
-      "fileHash": "10f8f9a3",
+      "fileHash": "ab9c59be",
       "needsInterop": false
     },
     "react/jsx-dev-runtime": {
       "src": "../../node_modules/react/jsx-dev-runtime.js",
       "file": "react_jsx-dev-runtime.js",
-      "fileHash": "90fe1b9a",
+      "fileHash": "48058ff4",
       "needsInterop": true
     },
     "react/jsx-runtime": {
       "src": "../../node_modules/react/jsx-runtime.js",
       "file": "react_jsx-runtime.js",
-      "fileHash": "f5221bae",
+      "fileHash": "dfcf2133",
       "needsInterop": true
     },
     "@zxing/browser": {
       "src": "../../node_modules/@zxing/browser/esm/index.js",
       "file": "@zxing_browser.js",
-      "fileHash": "86cc47c5",
+      "fileHash": "6220236b",
       "needsInterop": false
     },
     "firebase/app": {
       "src": "../../node_modules/firebase/app/dist/esm/index.esm.js",
       "file": "firebase_app.js",
-      "fileHash": "05a82b61",
+      "fileHash": "2b3e23f7",
       "needsInterop": false
     },
     "firebase/auth": {
       "src": "../../node_modules/firebase/auth/dist/esm/index.esm.js",
       "file": "firebase_auth.js",
-      "fileHash": "587a4f12",
+      "fileHash": "4a7408ed",
       "needsInterop": false
     },
     "firebase/firestore": {
       "src": "../../node_modules/firebase/firestore/dist/esm/index.esm.js",
       "file": "firebase_firestore.js",
-      "fileHash": "32a79715",
+      "fileHash": "08fbf499",
+      "needsInterop": false
+    },
+    "fuse.js": {
+      "src": "../../node_modules/fuse.js/dist/fuse.mjs",
+      "file": "fuse__js.js",
+      "fileHash": "5deec739",
       "needsInterop": false
     },
     "i18next": {
       "src": "../../node_modules/i18next/dist/esm/i18next.js",
       "file": "i18next.js",
-      "fileHash": "b5218266",
+      "fileHash": "f6302688",
       "needsInterop": false
     },
     "react-dom/client": {
       "src": "../../node_modules/react-dom/client.js",
       "file": "react-dom_client.js",
-      "fileHash": "edfdc50e",
+      "fileHash": "d45a7615",
       "needsInterop": true
     },
     "react-firebase-hooks/auth": {
       "src": "../../node_modules/react-firebase-hooks/auth/dist/index.esm.js",
       "file": "react-firebase-hooks_auth.js",
-      "fileHash": "1b284c27",
+      "fileHash": "3909d13e",
       "needsInterop": false
     },
     "react-i18next": {
       "src": "../../node_modules/react-i18next/dist/es/index.js",
       "file": "react-i18next.js",
-      "fileHash": "f85facc0",
-      "needsInterop": false
-    },
-    "react-qr-barcode-scanner": {
-      "src": "../../node_modules/react-qr-barcode-scanner/dist/index.js",
-      "file": "react-qr-barcode-scanner.js",
-      "fileHash": "9361db9b",
+      "fileHash": "0dc562a4",
       "needsInterop": false
     },
     "react-router-dom": {
       "src": "../../node_modules/react-router-dom/dist/index.js",
       "file": "react-router-dom.js",
-      "fileHash": "9890ff57",
+      "fileHash": "704728a2",
       "needsInterop": false
     },
     "workbox-window": {
       "src": "../../node_modules/workbox-window/build/workbox-window.prod.es5.mjs",
       "file": "workbox-window.js",
-      "fileHash": "fe2ec9ae",
+      "fileHash": "8789efbb",
       "needsInterop": false
     }
   },
   "chunks": {
-    "chunk-GCKS2SCC": {
-      "file": "chunk-GCKS2SCC.js"
-    },
-    "chunk-5I3ZSOFQ": {
-      "file": "chunk-5I3ZSOFQ.js"
-    },
     "chunk-XHU36PYF": {
       "file": "chunk-XHU36PYF.js"
-    },
-    "chunk-IHRST5LR": {
-      "file": "chunk-IHRST5LR.js"
     },
     "chunk-32E4H3EV": {
       "file": "chunk-32E4H3EV.js"
     },
     "chunk-K2MUQ6W2": {
       "file": "chunk-K2MUQ6W2.js"
+    },
+    "chunk-GCKS2SCC": {
+      "file": "chunk-GCKS2SCC.js"
+    },
+    "chunk-5I3ZSOFQ": {
+      "file": "chunk-5I3ZSOFQ.js"
     },
     "chunk-G3PMV62Z": {
       "file": "chunk-G3PMV62Z.js"
