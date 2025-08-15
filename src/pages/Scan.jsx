@@ -8,7 +8,7 @@ import ListeOverlay from '../components/ListeOverlay';
 import SuggestionsModal from '../components/SuggestionsModal';
 import SansCodesDropdown from '../components/SansCodesDropdown';
 import { fetchClosestProduct, fetchSuggestions } from '../utils/openFoodFacts';
-import { loadLocal, saveLocal, syncPendingData, isOnline as checkOnline } from '../utils/offlineUtils';
+import { loadLocal, syncPendingData, isOnline as checkOnline } from '../utils/offlineUtils';
 import './Scan.css';
 
 export default function Scan() {
@@ -20,12 +20,11 @@ export default function Scan() {
   const [message, setMessage] = useState('');
   const [showListeOverlay, setShowListeOverlay] = useState(false);
   const [isOnline, setIsOnline] = useState(checkOnline());
-  const [manualEntry, setManualEntry] = useState(false);
-  const [manualCode, setManualCode] = useState('');
   const [produitsSansCodes, setProduitsSansCodes] = useState([]);
   const [scanCountdown, setScanCountdown] = useState(10);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showSansCodes, setShowSansCodes] = useState(false);
 
   const videoRef = useRef(null);
   const codeReaderRef = useRef(null);
@@ -95,8 +94,6 @@ export default function Scan() {
   const handleCloseCamera = () => {
     stopCamera();
     setMessage('');
-    setManualEntry(false);
-    setManualCode('');
   };
 
   // --- Ajouter produit scanné
@@ -110,7 +107,7 @@ export default function Scan() {
       if (apiSuggestions && apiSuggestions.length) {
         setSuggestions(apiSuggestions);
         setShowSuggestions(true);
-        return; // attendre sélection
+        return;
       } else {
         produit = { nom: `${t('manualProduct')} ${code.slice(0,5)}`, prix: 1, code };
       }
@@ -120,7 +117,9 @@ export default function Scan() {
       await addToPanier(produit);
       setMessage(t('productAdded') || 'Produit ajouté');
       setTimeout(() => setMessage(''), 1500);
-      handleCloseCamera();
+      // Fermer champ recherche et revenir au bouton central
+      setShowSansCodes(false);
+      stopCamera();
     }
   };
 
@@ -130,32 +129,17 @@ export default function Scan() {
     await addToPanier(produitAjout);
     setMessage(t('productAdded') || 'Produit ajouté');
     setTimeout(() => setMessage(''), 1500);
-    handleCloseCamera();
-  };
-
-  const ajouterProduitManuel = async (code) => {
-    if (!code.trim()) { setMessage(t('emptyCodeError')); setTimeout(()=>setMessage(''),3000); return; }
-    const produit = { nom: `${t('manualProduct')} ${code.slice(0,5)}`, prix: 1, code };
-    await addToPanier(produit);
-    setMessage(t('productAdded'));
-    setTimeout(() => setMessage(''), 1500);
-    setManualEntry(false);
-    setManualCode('');
-    handleCloseCamera();
-  };
-
-  const handleManualSubmit = async () => {
-    if(manualCode.trim()){ 
-      await ajouterProduitManuel(manualCode.trim()); 
-    } 
+    // Fermer champ recherche et revenir au bouton central
+    setShowSansCodes(false);
+    stopCamera();
   };
 
   // --- Start scan
   const startScan = async () => {
     if (scanningRef.current) return;
     scanningRef.current = true;
-    setManualEntry(false);
     processingRef.current = false;
+    setShowSansCodes(false);
 
     try {
       codeReaderRef.current = new BrowserMultiFormatReader();
@@ -163,10 +147,11 @@ export default function Scan() {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (videoRef.current) videoRef.current.srcObject = stream;
 
-      // Timeout 10s
-      timeoutRef.current = setTimeout(() => { setManualEntry(true); stopCamera(); }, 10000);
+      timeoutRef.current = setTimeout(() => {
+        setShowSansCodes(true);
+        stopCamera();
+      }, 10000);
 
-      // Countdown visuel
       let counter = 10;
       setScanCountdown(counter);
       countdownRef.current = setInterval(() => {
@@ -192,19 +177,16 @@ export default function Scan() {
     }
   };
 
-  // --- Auto start / stop
   useEffect(() => {
-    if(scanning && !manualEntry) startScan();
+    if(scanning) startScan();
     else stopCamera();
-  }, [scanning, manualEntry]);
+  }, [scanning]);
 
-  // --- Stop caméra au changement de page
   useEffect(() => {
     stopCamera();
-    setManualEntry(false);
+    setShowSansCodes(false);
   }, [location.pathname]);
 
-  // --- Stop caméra au refresh / fermeture onglet
   useEffect(() => {
     const handleBeforeUnload = () => stopCamera();
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -216,17 +198,17 @@ export default function Scan() {
       <h1 className="app-title">SelfPay</h1>
       <p className="scan-subtitle">{t('tapToAddProduct')}</p>
 
-      {!scanning && !manualEntry && (
+      {!scanning && !showSansCodes && (
         <div className="scan-button-container" onClick={() => setScanning(true)} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && setScanning(true)}>
           <div className="scan-button"><Barcode size={40}/></div>
         </div>
       )}
 
-      {(scanning || manualEntry) && (
-        <div className="camera-container">
+      {(scanning || showSansCodes) && (
+        <div className={`camera-container ${showSansCodes ? 'no-border' : ''}`}>
           {message && <div className="camera-message">{message}</div>}
 
-          {scanning && !manualEntry && (
+          {!showSansCodes && scanning && (
             <>
               <video ref={videoRef} muted autoPlay playsInline className="camera-video" />
               <div className="scan-countdown">
@@ -236,22 +218,14 @@ export default function Scan() {
             </>
           )}
 
-          {manualEntry && (
-            <div className="manual-entry camera-video">
-              <p>{t('manualEntryPrompt')}</p>
-              <input type="text" value={manualCode} onChange={e=>setManualCode(e.target.value)} placeholder={t('enterBarcode')} />
-              <div className="bouton-container">
-                <button onClick={handleManualSubmit}>{t('validate') || 'Valider'}</button>
-                <button onClick={handleCloseCamera}>{t('cancel') || 'Annuler'}</button>
-              </div>
+          {showSansCodes && (
+            <div className="sans-codes-wrapper camera-video">
+              <SansCodesDropdown onAdd={ajouterProduitSansCodeDirect} produits={produitsSansCodes} />
             </div>
           )}
 
           <div className="camera-buttons-row">
-            <div className="sans-codes-container">
-              <SansCodesDropdown onAdd={ajouterProduitSansCodeDirect} produits={produitsSansCodes} />
-            </div>
-            {scanning && !manualEntry && (
+            {!showSansCodes && scanning && (
               <button onClick={handleCloseCamera} className="camera-button camera-close">
                 <X size={16}/> {t('closeCamera') || 'Fermer caméra'}
               </button>
@@ -269,7 +243,8 @@ export default function Scan() {
           await addToPanier(p);
           setMessage(t('productAdded') || 'Produit ajouté');
           setTimeout(() => setMessage(''), 1500);
-          handleCloseCamera();
+          setShowSansCodes(false);
+          stopCamera();
         }}
       />
 
