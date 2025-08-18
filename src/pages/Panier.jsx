@@ -1,43 +1,47 @@
+// Panier.jsx (version ultra-stable)
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePanier } from '../context/PanierContext';
 import ListeOverlay from '../components/ListeOverlay';
 import { useTranslation } from 'react-i18next';
-import { loadLocal, KEYS, syncPendingData, isOnline as checkOnline } from '../utils/offlineUtils';
+import { KEYS, loadLocal, syncPendingData, isOnline } from '../utils/offlineUtils';
 import './Panier.css';
 
 export default function Panier() {
-  const { panier, removeFromPanier } = usePanier();
+  const { panier, addToPanier, removeFromPanier, syncPending } = usePanier();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+
   const [showListeOverlay, setShowListeOverlay] = useState(false);
   const [message, setMessage] = useState('');
-  const [isOnline, setIsOnline] = useState(checkOnline());
+  const [isOnlineState, setIsOnlineState] = useState(isOnline());
   const [modalVisible, setModalVisible] = useState(false);
   const [produitToDelete, setProduitToDelete] = useState(null);
   const swipeStartX = useRef(null);
 
-  // --- Gestion statut online/offline
+  // --- Gestion connexion online/offline
   useEffect(() => {
-    const handleOnline = () => { setIsOnline(true); syncPendingData(); };
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = async () => {
+      setIsOnlineState(true);
+      await syncPending(); // sync immédiat à la reconnexion
+    };
+    const handleOffline = () => setIsOnlineState(false);
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [syncPending]);
 
-  // --- Chargement initial panier
+  // --- Initialiser panier si vide
   useEffect(() => {
-    if ((!panier || panier.length === 0)) {
-      const localPanier = loadLocal(KEYS.panier) || [];
-      localPanier.forEach(item => removeFromPanier(item)); // sync avec context si nécessaire
+    if (!panier || panier.length === 0) {
+      const local = loadLocal(KEYS.panier) || [];
+      local.forEach(item => addToPanier(item)); // remplit le contexte
     }
-    setLoading(false);
-  }, []);
+  }, [panier, addToPanier]);
 
   // --- Total
   const total = panier.reduce((sum, item) => sum + (item.prix || 0), 0);
@@ -48,9 +52,9 @@ export default function Panier() {
     setModalVisible(true);
   };
 
-  const validerSuppression = () => {
+  const validerSuppression = async () => {
     if (!produitToDelete) return;
-    removeFromPanier(produitToDelete);
+    await removeFromPanier(produitToDelete);
     setModalVisible(false);
     setProduitToDelete(null);
     setMessage(t('productRemoved') || 'Produit supprimé');
@@ -84,16 +88,14 @@ export default function Panier() {
       <div className={`panier-content scrollable-content${modalVisible ? ' modal-blur' : ''}`}>
         <h1 className="total-header">{t('total')}: {total.toFixed(2)} FC</h1>
 
-        {!isOnline && <p className="offline-warning">{t('offlineCartNotice') || 'Mode hors-ligne. Données locales utilisées.'}</p>}
+        {!isOnlineState && <p className="offline-warning">{t('offlineCartNotice') || 'Mode hors-ligne. Données locales utilisées.'}</p>}
 
-        {loading ? (
-          <p className="loading-text">{t('loadingCart') || 'Chargement du panier...'}</p>
-        ) : panier.length === 0 ? (
+        {panier.length === 0 ? (
           <p className="empty-text">{t('cartEmptyMessage') || 'Votre panier est vide.'}</p>
         ) : (
           <ul className="product-list">
             {panier.map((item, idx) => (
-              <li key={idx} className="product-item">
+              <li key={item.idSansCode || item.code || idx} className="product-item">
                 <div className="item-name">{item.nom}</div>
                 <div className="item-price">{item.prix.toFixed(2)} FC</div>
                 <button

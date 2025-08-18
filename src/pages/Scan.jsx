@@ -1,3 +1,4 @@
+// Scan.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { useLocation } from 'react-router-dom';
@@ -117,8 +118,6 @@ export default function Scan() {
       await addToPanier(produit);
       setMessage(t('productAdded') || 'Produit ajouté');
       setTimeout(() => setMessage(''), 1500);
-      // Fermer champ recherche et revenir au bouton central
-      setShowSansCodes(false);
       stopCamera();
     }
   };
@@ -129,8 +128,6 @@ export default function Scan() {
     await addToPanier(produitAjout);
     setMessage(t('productAdded') || 'Produit ajouté');
     setTimeout(() => setMessage(''), 1500);
-    // Fermer champ recherche et revenir au bouton central
-    setShowSansCodes(false);
     stopCamera();
   };
 
@@ -139,7 +136,6 @@ export default function Scan() {
     if (scanningRef.current) return;
     scanningRef.current = true;
     processingRef.current = false;
-    setShowSansCodes(false);
 
     try {
       codeReaderRef.current = new BrowserMultiFormatReader();
@@ -147,9 +143,10 @@ export default function Scan() {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (videoRef.current) videoRef.current.srcObject = stream;
 
+      // Timeout 10s → stop caméra + afficher dropdown
       timeoutRef.current = setTimeout(() => {
-        setShowSansCodes(true);
         stopCamera();
+        setShowSansCodes(true);
       }, 10000);
 
       let counter = 10;
@@ -204,33 +201,32 @@ export default function Scan() {
         </div>
       )}
 
-      {(scanning || showSansCodes) && (
-        <div className={`camera-container ${showSansCodes ? 'no-border' : ''}`}>
+      {scanning && (
+        <div className="camera-container">
           {message && <div className="camera-message">{message}</div>}
 
-          {!showSansCodes && scanning && (
-            <>
-              <video ref={videoRef} muted autoPlay playsInline className="camera-video" />
-              <div className="scan-countdown">
-                <div className="scan-progress" style={{ width: `${(scanCountdown/10)*100}%` }}></div>
-                <span>{scanCountdown}s</span>
-              </div>
-            </>
-          )}
-
-          {showSansCodes && (
-            <div className="sans-codes-wrapper camera-video">
-              <SansCodesDropdown onAdd={ajouterProduitSansCodeDirect} produits={produitsSansCodes} />
-            </div>
-          )}
+          <video ref={videoRef} muted autoPlay playsInline className="camera-video" />
+          <div className="scan-countdown">
+            <div className="scan-progress" style={{ width: `${(scanCountdown/10)*100}%` }}></div>
+            <span>{scanCountdown}s</span>
+          </div>
 
           <div className="camera-buttons-row">
-            {!showSansCodes && scanning && (
-              <button onClick={handleCloseCamera} className="camera-button camera-close">
-                <X size={16}/> {t('closeCamera') || 'Fermer caméra'}
-              </button>
-            )}
+            <button onClick={handleCloseCamera} className="camera-button camera-close">
+              <X size={16}/> {t('closeCamera') || 'Fermer caméra'}
+            </button>
           </div>
+        </div>
+      )}
+
+      {/* Dropdown toujours en dehors de la camera view */}
+      {showSansCodes && (
+        <div className="sans-codes-wrapper">
+          <SansCodesDropdown 
+            onAdd={ajouterProduitSansCodeDirect} 
+            onClose={() => setShowSansCodes(false)} 
+            produits={produitsSansCodes} 
+          />
         </div>
       )}
 
@@ -243,10 +239,16 @@ export default function Scan() {
           await addToPanier(p);
           setMessage(t('productAdded') || 'Produit ajouté');
           setTimeout(() => setMessage(''), 1500);
-          setShowSansCodes(false);
           stopCamera();
         }}
       />
+
+      {message && (
+  <div className="global-message">
+    {message}
+  </div>
+)}
+
 
       {showListeOverlay && <ListeOverlay onClose={()=>setShowListeOverlay(false)} />}
     </div>

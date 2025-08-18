@@ -1,0 +1,163 @@
+/* --- Conteneur principal --- */
+.sans-codes-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  font-family: "Inter", system-ui, sans-serif;
+  transition: all 0.3s ease-in-out;
+}
+
+/* --- Champ de recherche --- */
+.dropdown-selected {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  font-size: 15px;
+  outline: none;
+  transition: all 0.25s ease-in-out;
+}
+
+.dropdown-selected:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+/* --- Liste des résultats --- */
+.dropdown-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 5px;
+  max-height: 260px;
+  overflow-y: auto;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  animation: fadeIn 0.2s ease-in-out;
+  z-index: 1;
+}
+
+/* --- Élément d’un produit --- */
+.dropdown-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-color);
+  transition: background 0.2s ease, transform 0.1s ease;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background: var(--hover-bg);
+  transform: translateX(4px);
+}
+
+/* --- Texte produit --- */
+.item-nom {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.item-prix {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* --- Disabled / aucun produit --- */
+.dropdown-item.disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  background: transparent;
+  transform: none;
+}
+
+/* --- Bouton d’ajout --- */
+.sans-codes-add {
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.25s ease-in-out;
+  background: var(--btn-disabled-bg);
+  color: var(--btn-disabled-text);
+}
+
+.sans-codes-add.enabled {
+  background: var(--primary);
+  color: #fff;
+}
+
+.sans-codes-add.enabled:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Feedback après ajout */
+.sans-codes-add.added-feedback {
+  background: var(--success);
+  color: #fff;
+}
+
+/* --- Loader --- */
+.loading {
+  padding: 12px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* --- Animation d’apparition --- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Thème clair --- */
+:root {
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --primary-light: rgba(59,130,246,0.2);
+  --success: #16a34a;
+  --card-bg: #fff;
+  --input-bg: #f9fafb;
+  --text-color: #111827;
+  --text-muted: #6b7280;
+  --border-color: #e5e7eb;
+  --hover-bg: #f3f4f6;
+  --btn-disabled-bg: #e5e7eb;
+  --btn-disabled-text: #9ca3af;
+}
+
+/* --- Thème sombre --- */
+[data-theme="dark"] {
+  --primary: #60a5fa;
+  --primary-dark: #3b82f6;
+  --primary-light: rgba(96,165,250,0.2);
+  --success: #22c55e;
+  --card-bg: #1f2937;
+  --input-bg: #111827;
+  --text-color: #f9fafb;
+  --text-muted: #9ca3af;
+  --border-color: #374151;
+  --hover-bg: #374151;
+  --btn-disabled-bg: #374151;
+  --btn-disabled-text: #6b7280;
+}

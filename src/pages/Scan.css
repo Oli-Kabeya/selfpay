@@ -61,6 +61,7 @@
   position: relative;
   width: 300px;
   height: 300px;
+  z-index:3500;
 }
 
 .camera-video {
@@ -212,159 +213,24 @@
 
 
 
-
-/* Conteneur principal */
-/* Container global */
-.sans-codes-container {
-  position: relative;
-  width: 100%;
-  max-width: 400px;
-  margin: 0 auto;
-  font-family: var(--font-family, sans-serif);
-}
-
-/* Input de recherche */
-.dropdown-selected {
-  width: 100%;
-  padding: 10px 12px;
+.global-message {
+  position: fixed;
+  top: 35%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #4caf50;
+  color: white;
+  padding: 12px 20px;
   border-radius: 8px;
-  border: 1px solid var(--border-color, #ccc);
-  background-color: var(--input-bg, #fff);
-  color: var(--text-color, #000);
-  font-size: 16px;
-  outline: none;
-  transition: border 0.2s, box-shadow 0.2s;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  animation: fadeInOut 2s ease forwards;
+  z-index: 9999;
 }
 
-.dropdown-selected:focus {
-  border-color: var(--primary-color, #007bff);
-  box-shadow: 0 0 0 2px var(--primary-color-light, rgba(0,123,255,0.2));
-}
-
-/* Liste déroulante */
-.dropdown-list {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  max-height: 250px;
-  overflow-y: auto;
-  border: 1px solid var(--border-color, #ccc);
-  border-radius: 8px;
-  background-color: var(--dropdown-bg, #fff);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  z-index: 1000;
-  margin-top: 4px;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-/* Item de la liste */
-.dropdown-item {
-  padding: 10px 12px;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--text-color, #000);
-  transition: background-color 0.2s;
-}
-
-.dropdown-item:hover {
-  background-color: var(--hover-bg, #f0f0f0);
-}
-
-.dropdown-item.disabled {
-  cursor: default;
-  color: var(--text-disabled, #999);
-}
-
-/* Nom et prix */
-.item-nom {
-  font-weight: 500;
-}
-
-.item-prix {
-  font-weight: 400;
-  color: var(--text-muted, #666);
-}
-
-/* Bouton ajouter */
-.sans-codes-add {
-  margin-top: 8px;
-  width: 100%;
-  padding: 10px 0;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  background-color: var(--button-bg, #ccc);
-  color: var(--button-text, #fff);
-  transition: background-color 0.3s, transform 0.2s;
-}
-
-.sans-codes-add.enabled {
-  background-color: var(--primary-color, #007bff);
-  color: var(--button-text-enabled, #fff);
-}
-
-.sans-codes-add.enabled:hover {
-  background-color: var(--primary-color-hover, #0056b3);
-}
-
-/* Feedback visuel lorsqu'un produit est ajouté */
-.sans-codes-add.added-feedback {
-  background-color: var(--success-color, #28a745);
-  transform: scale(1.05);
-  color: #fff;
-}
-
-/* Loading */
-.loading {
-  padding: 10px;
-  text-align: center;
-  color: var(--text-muted, #666);
-  font-style: italic;
-}
-
-/* Scroll personnalisé */
-.dropdown-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.dropdown-list::-webkit-scrollbar-thumb {
-  background-color: var(--scrollbar-thumb, rgba(0,0,0,0.2));
-  border-radius: 3px;
-}
-
-.dropdown-list::-webkit-scrollbar-track {
-  background-color: var(--scrollbar-track, transparent);
-}
-
-/* Thème sombre */
-body[data-theme='dark'] .dropdown-selected {
-  background-color: var(--input-bg-dark, #2c2c2c);
-  color: var(--text-color-dark, #fff);
-  border: 1px solid var(--border-color-dark, #555);
-}
-
-body[data-theme='dark'] .dropdown-list {
-  background-color: var(--dropdown-bg-dark, #3a3a3a);
-  border: 1px solid var(--border-color-dark, #555);
-}
-
-body[data-theme='dark'] .dropdown-item:hover {
-  background-color: var(--hover-bg-dark, #505050);
-}
-
-body[data-theme='dark'] .item-prix {
-  color: var(--text-muted-dark, #ccc);
-}
-
-body[data-theme='dark'] .sans-codes-add.enabled {
-  background-color: var(--primary-color-dark, #3399ff);
-}
-
-body[data-theme='dark'] .sans-codes-add.added-feedback {
-  background-color: var(--success-color-dark, #28a745);
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translate(-50%, 20px); }
+  10% { opacity: 1; transform: translate(-50%, 0); }
+  90% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, 20px); }
 }

@@ -1,29 +1,30 @@
+// FixedTriangles.jsx
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { Settings, ListTodo } from 'lucide-react';
 
-export default function FixedTriangles({ onSettingsClick, onListClick, showList, showOverlay }) {
+export default function FixedTriangles({ onSettingsClick, onListClick, showList, floatingOpacity = 1, visible = true }) {
   const location = useLocation();
   const currentPath = location.pathname;
 
   const isAuthPage = currentPath === '/auth';
   const isProfilePage = currentPath === '/profile';
 
-  if (isAuthPage) return null;
-
-  const rightPosition = showOverlay ? '18rem' : '0.5rem';
+  if (isAuthPage || !visible) return null; // ← boutons invisibles si visible=false
 
   return (
     <div
       className="fixed top-1/2 -translate-y-1/2 z-[1000] flex flex-col items-end"
       style={{
-        right: rightPosition,
-        transition: 'right 0.3s ease',
+        right: '0.5rem',
+        transition: 'opacity 0.3s ease, transform 0.3s ease',
         gap: '24px',
+        opacity: floatingOpacity, // ← contrôle de l'opacité
+        pointerEvents: floatingOpacity === 0 ? 'none' : 'auto', // ← désactive clics si invisible
       }}
       aria-label="Icônes flottantes"
     >
-      {!isProfilePage && !showOverlay && (
+      {!isProfilePage && (
         <Settings
           size={28}
           className="cursor-pointer text-[var(--color-primary)] hover:scale-110 transition-transform"
@@ -47,7 +48,7 @@ export default function FixedTriangles({ onSettingsClick, onListClick, showList,
           }}
           role="button"
           tabIndex={0}
-          aria-label={showOverlay ? 'Fermer la liste' : 'Ouvrir la liste'}
+          aria-label={showList ? 'Ouvrir la liste' : 'Fermer la liste'}
         />
       )}
     </div>

@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { addPending, isOnline, syncPendingData, KEYS } from "../utils/offlineUtils";
 import { fetchProductsFromAPI } from "../utils/openFoodFacts";
-import "../pages/Scan.css";
+import './SansCodesDropdown.css';
 
-export default function SansCodesDropdown({ onAdd }) {
+export default function SansCodesDropdown({ onAdd, onClose }) {
   const { t } = useTranslation();
   const [produits, setProduits] = useState([]);
   const [filteredProduits, setFilteredProduits] = useState([]);
@@ -51,7 +51,7 @@ export default function SansCodesDropdown({ onAdd }) {
 
   const handleAddClick = async () => {
     if (!selectedProduit) return;
-    onAdd(selectedProduit);
+    await onAdd(selectedProduit);
 
     // Feedback visuel
     setAddedFeedback(true);
@@ -62,6 +62,9 @@ export default function SansCodesDropdown({ onAdd }) {
 
     setSelectedProduit(null);
     setSearchTerm("");
+
+    // ✅ Fermer la barre après ajout réussi
+    if (onClose) onClose();
   };
 
   return (

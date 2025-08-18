@@ -1,17 +1,18 @@
 // Liste.jsx
 import React, { useEffect, useState } from 'react';
-import { auth } from '../firebase';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import useTranslation from '../hooks/useTranslation';
 import FooterNav from '../components/FooterNav';
-import { saveLocal, loadLocal, addPending, syncPendingData, isOnline, KEYS } from '../utils/offlineUtils';
+import { 
+  loadLocal, saveLocal, addPending, syncPendingData, isOnline, KEYS, getPendingPanier 
+} from '../utils/offlineUtils';
 import './Liste.css';
 
 export default function Liste() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const db = getFirestore();
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,6 +20,7 @@ export default function Liste() {
   const [editingId, setEditingId] = useState(null);
   const [editingText, setEditingText] = useState('');
 
+  // --- Chargement initial
   useEffect(() => {
     const fetchList = async () => {
       const user = auth.currentUser;
@@ -27,21 +29,27 @@ export default function Liste() {
         return;
       }
 
-      const localItems = loadLocal('liste_courses') || [];
+      const localItems = loadLocal(KEYS.liste) || [];
       setItems(localItems);
 
       if (isOnline()) {
         try {
           const docRef = doc(db, 'listes_courses', user.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            const allItems = data.items || [];
-            setItems(allItems);
-            saveLocal('liste_courses', allItems);
-          }
-        } catch (error) {
-          console.error('Erreur lors du chargement de la liste :', error);
+          const snap = await getDoc(docRef);
+          const firestoreItems = snap.exists() ? snap.data().items || [] : [];
+          const pending = loadLocal(KEYS.pending.liste) || [];
+
+          // Fusion + déduplication
+          const merged = [...firestoreItems, ...pending, ...localItems];
+          const unique = Array.from(new Map(merged.map(p => [p.id || JSON.stringify(p), p])).values());
+
+          setItems(unique);
+          saveLocal(KEYS.liste, unique);
+
+          await setDoc(docRef, { items: unique }, { merge: true });
+          saveLocal(KEYS.pending.liste, []);
+        } catch (err) {
+          console.error('Erreur chargement liste:', err);
         } finally {
           syncPendingData();
         }
@@ -51,22 +59,19 @@ export default function Liste() {
     };
 
     fetchList();
-  }, [db, navigate]);
+  }, [navigate]);
 
-  const updateFirestoreList = async (newItems) => {
+  const updateList = async (newItems) => {
     setItems(newItems);
-    saveLocal('liste_courses', newItems);
+    saveLocal(KEYS.liste, newItems);
 
-    if (isOnline()) {
+    const user = auth.currentUser;
+    if (user && isOnline()) {
       try {
-        const user = auth.currentUser;
-        if (!user) return;
-        const docRef = doc(db, 'listes_courses', user.uid);
-        await setDoc(docRef, { items: newItems }, { merge: true });
+        const ref = doc(db, 'listes_courses', user.uid);
+        await setDoc(ref, { items: newItems }, { merge: true });
         syncPendingData();
-      } catch (error) {
-        console.error('Erreur Firestore :', error);
-        // Offline fallback → ajouter à pending
+      } catch {
         addPending(KEYS.pending.liste, { type: 'setList', items: newItems });
       }
     } else {
@@ -74,122 +79,64 @@ export default function Liste() {
     }
   };
 
-  const toggleChecked = (id) => {
-    const updatedItems = items.map(item =>
-      item.id === id ? { ...item, checked: !item.checked } : item
-    );
-    updateFirestoreList(updatedItems);
-  };
-
-  const deleteChecked = () => {
-    const filtered = items.filter(item => !item.checked);
-    updateFirestoreList(filtered);
-  };
-
-  const deleteAll = () => {
-    const confirmed = window.confirm(t('confirmDeleteAll') || 'Supprimer toute la liste ?');
-    if (!confirmed) return;
-    updateFirestoreList([]);
-  };
-
   const addItem = () => {
     const trimmed = newItemName.trim();
     if (!trimmed) return;
-    const newItem = {
-      id: Date.now().toString(),
-      nom: trimmed,
-      checked: false,
-      ajoute_le: new Date()
-    };
-    const updatedItems = [...items, newItem];
+    const newItem = { id: Date.now().toString(), nom: trimmed, checked: false, ajoute_le: new Date() };
+    updateList([...items, newItem]);
     setNewItemName('');
-    updateFirestoreList(updatedItems);
   };
 
-  const startEditing = (id, currentName) => {
-    setEditingId(id);
-    setEditingText(currentName);
+  const toggleChecked = (id) => {
+    const updated = items.map(item => item.id === id ? { ...item, checked: !item.checked } : item);
+    updateList(updated);
   };
 
-  const cancelEditing = () => {
-    setEditingId(null);
-    setEditingText('');
+  const deleteItem = (id) => updateList(items.filter(item => item.id !== id));
+  const deleteChecked = () => updateList(items.filter(item => !item.checked));
+  const deleteAll = () => {
+    if (window.confirm(t('confirmDeleteAll') || 'Supprimer toute la liste ?')) updateList([]);
   };
 
+  const startEditing = (id, nom) => { setEditingId(id); setEditingText(nom); };
+  const cancelEditing = () => { setEditingId(null); setEditingText(''); };
   const saveEditing = (id) => {
     const trimmed = editingText.trim();
     if (!trimmed) return cancelEditing();
-    const updatedItems = items.map(item =>
-      item.id === id ? { ...item, nom: trimmed } : item
-    );
-    setEditingId(null);
-    setEditingText('');
-    updateFirestoreList(updatedItems);
+    const updated = items.map(item => item.id === id ? { ...item, nom: trimmed } : item);
+    cancelEditing();
+    updateList(updated);
   };
 
-  const deleteItem = (id) => {
-    const filtered = items.filter(item => item.id !== id);
-    updateFirestoreList(filtered);
-  };
-
-  if (loading) {
-    return (
-      <div className="p-6 text-center text-lg min-h-screen" style={{ color: 'var(--color-text)', backgroundColor: 'var(--color-bg)' }}>
-        {t('loading') || 'Chargement...'}
-      </div>
-    );
-  }
+  if (loading) return <div className="p-6 text-center min-h-screen">{t('loading') || 'Chargement...'}</div>;
 
   return (
     <div className="liste-page">
       <div className="liste-content">
         <h1 className="liste-title">{t('shoppingList') || 'Liste de courses'}</h1>
-
-        {items.length === 0 ? (
-          <p>{t('emptyShoppingList') || 'Votre liste de courses est vide.'}</p>
-        ) : (
+        {items.length === 0 ? <p>{t('emptyShoppingList') || 'Votre liste est vide.'}</p> : (
           <ul className="liste-ul">
             {items.map(({ id, nom, checked }) => (
               <li key={id} className="liste-item">
-                <input
-                  type="checkbox"
-                  checked={checked || false}
-                  onChange={() => toggleChecked(id)}
-                  aria-label={`${checked ? t('uncheck') : t('check')} ${nom}`}
-                />
-
+                <input type="checkbox" checked={checked || false} onChange={() => toggleChecked(id)} />
                 {editingId === id ? (
                   <>
                     <input
                       type="text"
                       value={editingText}
                       onChange={(e) => setEditingText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') saveEditing(id);
-                        else if (e.key === 'Escape') cancelEditing();
-                      }}
+                      onKeyDown={e => { if (e.key==='Enter') saveEditing(id); else if (e.key==='Escape') cancelEditing(); }}
                       onBlur={() => saveEditing(id)}
                       autoFocus
                       className="edit-input"
-                      inputMode="text"
-                      style={{ fontSize: '16px' }}
                     />
-                    <button onClick={() => saveEditing(id)} className="save-btn" aria-label={t('save')}>✓</button>
-                    <button onClick={cancelEditing} className="cancel-btn" aria-label={t('cancel')}>✗</button>
+                    <button onClick={() => saveEditing(id)} className="save-btn">✓</button>
+                    <button onClick={cancelEditing} className="cancel-btn">✗</button>
                   </>
                 ) : (
                   <>
-                    <span
-                      className={`item-name ${checked ? 'checked' : ''}`}
-                      onClick={() => startEditing(id, nom)}
-                      tabIndex={0}
-                      onKeyDown={(e) => { if (e.key === 'Enter') startEditing(id, nom); }}
-                      aria-label={t('editItem')}
-                      role="button"
-                    >
-                      {nom}
-                    </span>
-                    <button onClick={() => deleteItem(id)} className="delete-btn" aria-label={t('deleteItem')}>🗑</button>
+                    <span onClick={() => startEditing(id, nom)} className={`item-name ${checked?'checked':''}`} role="button">{nom}</span>
+                    <button onClick={() => deleteItem(id)} className="delete-btn">🗑</button>
                   </>
                 )}
               </li>
@@ -199,17 +146,8 @@ export default function Liste() {
 
         {items.length > 0 && (
           <div className="liste-actions">
-            <button
-              onClick={deleteChecked}
-              disabled={items.every(item => !item.checked)}
-              className="action-btn"
-            >
-              {t('deleteChecked')}
-            </button>
-
-            <button onClick={deleteAll} className="action-btn delete-all">
-              {t('deleteAll')}
-            </button>
+            <button onClick={deleteChecked} className="delete-checked" disabled={items.every(i => !i.checked)}>{t('deleteChecked')}</button>
+            <button onClick={deleteAll} className="delete-all">{t('deleteAll')}</button>
           </div>
         )}
       </div>
@@ -219,15 +157,10 @@ export default function Liste() {
           type="text"
           placeholder={t('addNewItemPlaceholder')}
           value={newItemName}
-          onChange={(e) => setNewItemName(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && addItem()}
-          aria-label={t('addNewItem')}
-          inputMode="text"
-          style={{ fontSize: '16px' }}
+          onChange={e => setNewItemName(e.target.value)}
+          onKeyDown={e => e.key==='Enter' && addItem()}
         />
-        <button onClick={addItem} disabled={!newItemName.trim()}>
-          {t('add')}
-        </button>
+        <button onClick={addItem} disabled={!newItemName.trim()}>{t('add')}</button>
       </div>
 
       <FooterNav />

@@ -55,6 +55,7 @@
   background: none;
   border: none;
   cursor: pointer;
+  color:var(--color-primary);
 }
 
 .liste-actions {
@@ -75,6 +76,20 @@
 
 .delete-all {
   background-color: red;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.delete-checked{
+  background-color: var(--color-primary);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 .liste-input-container {
