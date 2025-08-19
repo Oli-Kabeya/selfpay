@@ -161,3 +161,50 @@
   --btn-disabled-bg: #374151;
   --btn-disabled-text: #6b7280;
 }
+
+
+/* SansCodesDropdown.css */
+
+/* Conteneur du header pour le bouton annuler */
+.sans-codes-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.5rem 1rem;
+  background-color: var(--dropdown-header-bg, #f5f5f5); /* clair par défaut */
+  border-bottom: 1px solid var(--dropdown-border, #ddd);
+}
+
+/* Bouton Annuler */
+.sans-codes-cancel {
+  background-color: transparent;
+  color: var(--text-primary, #333);
+  border: 1px solid var(--text-primary, #333);
+  border-radius: 6px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.sans-codes-cancel:hover {
+  background-color: var(--text-primary, #333);
+  color: var(--bg-light, #fff);
+  border-color: var(--text-primary, #333);
+}
+
+/* Dark mode */
+[data-theme="dark"] .sans-codes-header {
+  background-color: var(--dropdown-header-bg-dark, #2b2b2b);
+  border-bottom-color: var(--dropdown-border-dark, #555);
+}
+
+[data-theme="dark"] .sans-codes-cancel {
+  color: var(--text-primary-dark, #eee);
+  border-color: var(--text-primary-dark, #eee);
+}
+
+[data-theme="dark"] .sans-codes-cancel:hover {
+  background-color: var(--text-primary-dark, #eee);
+  color: var(--bg-dark, #000);
+}
+

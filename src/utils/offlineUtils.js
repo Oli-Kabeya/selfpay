@@ -16,8 +16,8 @@ export const KEYS = {
   }
 };
 
-// ⏱ Gestion batch sync
-const SYNC_INTERVAL_MS = 60 * 60 * 1000; // 1h
+// ⏱ Gestion batch sync (sécurité toutes les heures)
+const SYNC_INTERVAL_MS = 60 * 60 * 1000; 
 let lastSync = 0;
 
 // 📌 Charger données locales
@@ -39,10 +39,10 @@ export function isOnline() {
   return navigator.onLine;
 }
 
-// 📌 Ajouter à pending
-export function addPending(key, item) {
+// 📌 Ajouter une action en attente
+export function addPending(key, action) {
   const pending = loadLocal(key);
-  pending.push(item);
+  pending.push(action);
   saveLocal(key, pending);
 }
 
@@ -57,15 +57,15 @@ export function clearPendingPanier() {
 }
 
 // 🔄 Synchronisation générique avec Firestore
-export async function syncPendingData() {
+export async function syncPendingData(force = false) {
   const uid = auth.currentUser?.uid;
   if (!uid || !isOnline()) return;
 
   const now = Date.now();
-  if (now - lastSync < SYNC_INTERVAL_MS) return;
+  if (!force && now - lastSync < SYNC_INTERVAL_MS) return;
   lastSync = now;
 
-  // 🔹 Sync panier
+  // --- 🔹 Sync panier
   const pendingPanier = loadLocal(KEYS.pending.panier);
   if (pendingPanier.length) {
     try {
@@ -74,7 +74,9 @@ export async function syncPendingData() {
       let currentArticles = snap.exists() ? snap.data().articles || [] : [];
 
       for (const action of pendingPanier) {
-        if (action.action === "add") currentArticles.push(action.product);
+        if (action.action === "add") {
+          currentArticles.push(action.product);
+        }
         if (action.action === "remove") {
           currentArticles = currentArticles.filter(p =>
             (action.code ? p.code !== action.code : true) &&
@@ -84,31 +86,40 @@ export async function syncPendingData() {
       }
 
       await setDoc(ref, { articles: currentArticles, updatedAt: new Date() }, { merge: true });
-      saveLocal(KEYS.pending.panier, []);
+      saveLocal(KEYS.panier, currentArticles); // ✅ met à jour local aussi
+      clearPendingPanier();
     } catch (err) {
       console.error("Erreur sync panier:", err);
     }
   }
 
-  // 🔹 Sync historique
+  // --- 🔹 Sync historique
   const pendingHist = loadLocal(KEYS.pending.historique);
   if (pendingHist.length) {
-    for (const tx of pendingHist) {
-      await addDoc(collection(db, "achats", uid, "liste"), tx);
+    try {
+      for (const tx of pendingHist) {
+        await addDoc(collection(db, "achats", uid, "liste"), tx);
+      }
+      saveLocal(KEYS.pending.historique, []);
+    } catch (err) {
+      console.error("Erreur sync historique:", err);
     }
-    saveLocal(KEYS.pending.historique, []);
   }
 
-  // 🔹 Sync liste
+  // --- 🔹 Sync liste
   const pendingListe = loadLocal(KEYS.pending.liste);
   if (pendingListe.length) {
-    for (const item of pendingListe) {
-      await setDoc(doc(db, "listes_courses", uid, item.id), item, { merge: true });
+    try {
+      for (const item of pendingListe) {
+        await setDoc(doc(db, "listes_courses", uid, item.id), item, { merge: true });
+      }
+      saveLocal(KEYS.pending.liste, []);
+    } catch (err) {
+      console.error("Erreur sync liste:", err);
     }
-    saveLocal(KEYS.pending.liste, []);
   }
 
-  console.log("Sync batch offline terminé");
+  console.log("✅ Sync offline terminé");
 }
 
 // 📦 Ajouter au panier
@@ -158,7 +169,7 @@ export async function addToHistorique(transaction) {
   historique.push(transaction);
   saveLocal(KEYS.historique, historique);
 
-  if (isOnline()) await syncPendingData();
+  if (isOnline()) await syncPendingData(true);
   else addPending(KEYS.pending.historique, transaction);
 }
 
@@ -168,7 +179,7 @@ export async function addToListe(item) {
   liste.push(item);
   saveLocal(KEYS.liste, liste);
 
-  if (isOnline()) await syncPendingData();
+  if (isOnline()) await syncPendingData(true);
   else addPending(KEYS.pending.liste, item);
 }
 
@@ -187,7 +198,7 @@ export async function syncProfil() {
 
 // 🛠 Initialisation sync offline
 export function initOfflineSync() {
-  window.addEventListener("online", syncPendingData);
-  syncPendingData(); // tentative au démarrage
-  setInterval(syncPendingData, SYNC_INTERVAL_MS);
+  window.addEventListener("online", () => syncPendingData(true)); // ✅ force sync immédiat
+  syncPendingData(true); // tentative au démarrage
+  setInterval(() => syncPendingData(false), SYNC_INTERVAL_MS);
 }

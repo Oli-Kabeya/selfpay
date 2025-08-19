@@ -8,7 +8,7 @@ import { usePanier } from '../context/PanierContext';
 import ListeOverlay from '../components/ListeOverlay';
 import SuggestionsModal from '../components/SuggestionsModal';
 import SansCodesDropdown from '../components/SansCodesDropdown';
-import { fetchClosestProduct, fetchSuggestions } from '../utils/openFoodFacts';
+import { fetchExactProduct, fetchSuggestions } from '../utils/openFoodFacts';
 import { loadLocal, syncPendingData, isOnline as checkOnline } from '../utils/offlineUtils';
 import './Scan.css';
 
@@ -101,25 +101,32 @@ export default function Scan() {
   const ajouterProduit = async (code) => {
     if (!code) return;
 
-    let produit = await fetchClosestProduct(code);
+    // 1️⃣ Essai exact
+    const produitExact = await fetchExactProduct(code);
 
-    if (!produit) {
-      const apiSuggestions = await fetchSuggestions(code);
-      if (apiSuggestions && apiSuggestions.length) {
-        setSuggestions(apiSuggestions);
-        setShowSuggestions(true);
-        return;
-      } else {
-        produit = { nom: `${t('manualProduct')} ${code.slice(0,5)}`, prix: 1, code };
-      }
-    }
-
-    if (produit) {
-      await addToPanier(produit);
+    if (produitExact) {
+      await addToPanier(produitExact);
       setMessage(t('productAdded') || 'Produit ajouté');
       setTimeout(() => setMessage(''), 1500);
       stopCamera();
+      return;
     }
+
+    // 2️⃣ Pas d’exact → chercher suggestions
+    const apiSuggestions = await fetchSuggestions(code);
+
+    if (apiSuggestions && apiSuggestions.length) {
+      setSuggestions(apiSuggestions);
+      setShowSuggestions(true);
+      return;
+    }
+
+    // 3️⃣ Rien trouvé → fallback manuel
+    const produitManuel = { nom: `${t('manualProduct')} ${code.slice(0,5)}`, prix: 1, code };
+    await addToPanier(produitManuel);
+    setMessage(t('productAdded') || 'Produit ajouté');
+    setTimeout(() => setMessage(''), 1500);
+    stopCamera();
   };
 
   const ajouterProduitSansCodeDirect = async (produit) => {
@@ -143,7 +150,6 @@ export default function Scan() {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (videoRef.current) videoRef.current.srcObject = stream;
 
-      // Timeout 10s → stop caméra + afficher dropdown
       timeoutRef.current = setTimeout(() => {
         stopCamera();
         setShowSansCodes(true);
@@ -203,8 +209,6 @@ export default function Scan() {
 
       {scanning && (
         <div className="camera-container">
-          {message && <div className="camera-message">{message}</div>}
-
           <video ref={videoRef} muted autoPlay playsInline className="camera-video" />
           <div className="scan-countdown">
             <div className="scan-progress" style={{ width: `${(scanCountdown/10)*100}%` }}></div>
@@ -219,7 +223,6 @@ export default function Scan() {
         </div>
       )}
 
-      {/* Dropdown toujours en dehors de la camera view */}
       {showSansCodes && (
         <div className="sans-codes-wrapper">
           <SansCodesDropdown 
@@ -244,11 +247,8 @@ export default function Scan() {
       />
 
       {message && (
-  <div className="global-message">
-    {message}
-  </div>
-)}
-
+        <div className="global-message">{message}</div>
+      )}
 
       {showListeOverlay && <ListeOverlay onClose={()=>setShowListeOverlay(false)} />}
     </div>

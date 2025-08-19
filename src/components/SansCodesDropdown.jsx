@@ -1,3 +1,4 @@
+// SansCodesDropdown.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { addPending, isOnline, syncPendingData, KEYS } from "../utils/offlineUtils";
@@ -53,7 +54,6 @@ export default function SansCodesDropdown({ onAdd, onClose }) {
     if (!selectedProduit) return;
     await onAdd(selectedProduit);
 
-    // Feedback visuel
     setAddedFeedback(true);
     setTimeout(() => setAddedFeedback(false), 1000);
 
@@ -63,12 +63,17 @@ export default function SansCodesDropdown({ onAdd, onClose }) {
     setSelectedProduit(null);
     setSearchTerm("");
 
-    // ✅ Fermer la barre après ajout réussi
     if (onClose) onClose();
   };
 
   return (
     <div className="sans-codes-container">
+      <div className="sans-codes-header">
+        <button className="sans-codes-cancel" onClick={onClose}>
+          {t('cancel')}
+        </button>
+      </div>
+
       <input
         type="text"
         className="dropdown-selected"

@@ -1,45 +1,29 @@
 import Fuse from 'fuse.js'; // npm install fuse.js si pas déjà
 
 
-export async function fetchClosestProduct(scannedCode) {
-  // 1️⃣ Tentative produit exact
+// Cherche uniquement un produit exact par code-barres
+export async function fetchExactProduct(barcode) {
+  if (!barcode) return null;
   try {
-    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${scannedCode}.json`);
+    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
     const data = await res.json();
     if (data.status === 1) {
       const p = data.product;
       return {
         code: data.code,
-        nom: p.product_name || `Produit ${scannedCode.slice(0,5)}`,
+        nom: p.product_name || `Produit ${barcode.slice(0,5)}`,
         marque: p.brands || '',
         categorie: p.categories || '',
-        prix: Math.floor(Math.random()*1000)/10 + 50
+        prix: Math.floor(Math.random() * 10) + 1
       };
     }
-  } catch(err) { console.error(err); }
-
-  // 2️⃣ Recherche approximative si exact introuvable
-  try {
-    const searchRes = await fetch(
-      `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${scannedCode}&search_simple=1&action=process&json=1&page_size=20`
-    );
-    const searchData = await searchRes.json();
-    if (!searchData.products || searchData.products.length === 0) return null;
-
-    const fuse = new Fuse(searchData.products, { keys: ['code', 'product_name'], threshold: 0.4 });
-    const result = fuse.search(scannedCode)[0];
-    if (!result) return null;
-
-    const p = result.item;
-    return {
-      code: p.code || scannedCode,
-      nom: p.product_name || `Produit ${scannedCode.slice(0,5)}`,
-      marque: p.brands || '',
-      categorie: p.categories || '',
-      prix: Math.floor(Math.random()*1000)/10 + 50
-    };
-  } catch(err) { console.error(err); return null; }
+    return null;
+  } catch (err) {
+    console.error("fetchExactProduct error:", err);
+    return null;
+  }
 }
+
 
 // utils/openFoodFacts.js
 
