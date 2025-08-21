@@ -1,6 +1,12 @@
+.panier-page{
+  overflow: hidden;
+  display:flex;
+  flex-direction: column;
+  height:100vh;
+}
 /* Contenu scrollable avec marge à droite pour les boutons flottants */
 .scrollable-content {
- min-height: 30%;
+  flex: 1;
   overflow-y: auto;
   padding: 1rem;
   width:100%;
@@ -85,13 +91,15 @@
 
 /* Conteneur des boutons centrés horizontalement avec espacement plus grand */
 .floating-button-row {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
+  /*position: fixed;*/
+  margin-bottom: 14vh;
+  /*left: 50%;
+  transform: translateX(-50%);*/
+  align-items: center;
+  justify-content: center;
   display: flex;
-  gap: 36px; /* espace plus large */
-  z-index: 999;
+/*  gap: 36px; /* espace plus large */
+  /*z-index: 999;*/
 }
 
 /* Style commun aux 2 boutons, élégant et confortable */
@@ -116,15 +124,6 @@
 .button-base:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
-}
-
-/* Bouton Scanner (bleu dégradé) */
-.scan-btn {
-  background: linear-gradient(135deg, #4A90E2, #007AFF);
-  color: white;
-  border-radius:5px;
-  padding-top: 10px;
-  padding-bottom: 10px;
 }
 
 /* Bouton Valider (orange dégradé) */
