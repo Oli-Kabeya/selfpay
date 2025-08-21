@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import useTranslation from '../hooks/useTranslation';
 import FooterNav from '../components/FooterNav';
 import { 
-  loadLocal, saveLocal, addPending, syncPendingData, isOnline, KEYS, getPendingPanier 
+  loadLocal, saveLocal, addPending, syncPendingData, isOnline, KEYS 
 } from '../utils/offlineUtils';
 import './Liste.css';
 
@@ -22,43 +22,43 @@ export default function Liste() {
 
   // --- Chargement initial
   useEffect(() => {
-    const fetchList = async () => {
-      const user = auth.currentUser;
-      if (!user) {
-        navigate('/auth');
-        return;
+    const user = auth.currentUser;
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    // ⚡ Affiche d'abord la version locale
+    const localItems = loadLocal(KEYS.liste) || [];
+    setItems(localItems);
+    setLoading(false); // ← UI débloquée immédiatement
+
+    // 🔄 Ensuite synchro Firestore si online
+    const syncFirestore = async () => {
+      if (!isOnline()) return;
+      try {
+        const docRef = doc(db, 'listes_courses', user.uid);
+        const snap = await getDoc(docRef);
+        const firestoreItems = snap.exists() ? snap.data().items || [] : [];
+        const pending = loadLocal(KEYS.pending.liste) || [];
+
+        // Fusion + déduplication
+        const merged = [...firestoreItems, ...pending, ...localItems];
+        const unique = Array.from(new Map(merged.map(p => [p.id || JSON.stringify(p), p])).values());
+
+        setItems(unique);
+        saveLocal(KEYS.liste, unique);
+
+        await setDoc(docRef, { items: unique }, { merge: true });
+        saveLocal(KEYS.pending.liste, []);
+      } catch (err) {
+        console.error('Erreur chargement liste:', err);
+      } finally {
+        syncPendingData();
       }
-
-      const localItems = loadLocal(KEYS.liste) || [];
-      setItems(localItems);
-
-      if (isOnline()) {
-        try {
-          const docRef = doc(db, 'listes_courses', user.uid);
-          const snap = await getDoc(docRef);
-          const firestoreItems = snap.exists() ? snap.data().items || [] : [];
-          const pending = loadLocal(KEYS.pending.liste) || [];
-
-          // Fusion + déduplication
-          const merged = [...firestoreItems, ...pending, ...localItems];
-          const unique = Array.from(new Map(merged.map(p => [p.id || JSON.stringify(p), p])).values());
-
-          setItems(unique);
-          saveLocal(KEYS.liste, unique);
-
-          await setDoc(docRef, { items: unique }, { merge: true });
-          saveLocal(KEYS.pending.liste, []);
-        } catch (err) {
-          console.error('Erreur chargement liste:', err);
-        } finally {
-          syncPendingData();
-        }
-      }
-
-      setLoading(false);
     };
 
-    fetchList();
+    syncFirestore();
   }, [navigate]);
 
   const updateList = async (newItems) => {
@@ -82,7 +82,12 @@ export default function Liste() {
   const addItem = () => {
     const trimmed = newItemName.trim();
     if (!trimmed) return;
-    const newItem = { id: Date.now().toString(), nom: trimmed, checked: false, ajoute_le: new Date() };
+    const newItem = { 
+      id: Date.now().toString(), 
+      nom: trimmed, 
+      checked: false, 
+      ajoute_le: new Date().toISOString() 
+    };
     updateList([...items, newItem]);
     setNewItemName('');
   };
@@ -108,24 +113,35 @@ export default function Liste() {
     updateList(updated);
   };
 
-  if (loading) return <div className="p-6 text-center min-h-screen">{t('loading') || 'Chargement...'}</div>;
+  if (loading) {
+    return <div className="p-6 text-center min-h-screen">{t('loading') || 'Chargement...'}</div>;
+  }
 
   return (
     <div className="liste-page">
       <div className="liste-content">
         <h1 className="liste-title">{t('shoppingList') || 'Liste de courses'}</h1>
-        {items.length === 0 ? <p>{t('emptyShoppingList') || 'Votre liste est vide.'}</p> : (
+        {items.length === 0 ? (
+          <p>{t('emptyShoppingList') || 'Votre liste est vide.'}</p>
+        ) : (
           <ul className="liste-ul">
             {items.map(({ id, nom, checked }) => (
               <li key={id} className="liste-item">
-                <input type="checkbox" checked={checked || false} onChange={() => toggleChecked(id)} />
+                <input 
+                  type="checkbox" 
+                  checked={checked || false} 
+                  onChange={() => toggleChecked(id)} 
+                />
                 {editingId === id ? (
                   <>
                     <input
                       type="text"
                       value={editingText}
                       onChange={(e) => setEditingText(e.target.value)}
-                      onKeyDown={e => { if (e.key==='Enter') saveEditing(id); else if (e.key==='Escape') cancelEditing(); }}
+                      onKeyDown={e => { 
+                        if (e.key==='Enter') saveEditing(id); 
+                        else if (e.key==='Escape') cancelEditing(); 
+                      }}
                       onBlur={() => saveEditing(id)}
                       autoFocus
                       className="edit-input"
@@ -135,7 +151,13 @@ export default function Liste() {
                   </>
                 ) : (
                   <>
-                    <span onClick={() => startEditing(id, nom)} className={`item-name ${checked?'checked':''}`} role="button">{nom}</span>
+                    <span 
+                      onClick={() => startEditing(id, nom)} 
+                      className={`item-name ${checked?'checked':''}`} 
+                      role="button"
+                    >
+                      {nom}
+                    </span>
                     <button onClick={() => deleteItem(id)} className="delete-btn">🗑</button>
                   </>
                 )}
@@ -146,7 +168,13 @@ export default function Liste() {
 
         {items.length > 0 && (
           <div className="liste-actions">
-            <button onClick={deleteChecked} className="delete-checked" disabled={items.every(i => !i.checked)}>{t('deleteChecked')}</button>
+            <button 
+              onClick={deleteChecked} 
+              className="delete-checked" 
+              disabled={items.every(i => !i.checked)}
+            >
+              {t('deleteChecked')}
+            </button>
             <button onClick={deleteAll} className="delete-all">{t('deleteAll')}</button>
           </div>
         )}

@@ -1,67 +1,83 @@
+// ListeOverlay.jsx
 import React, { useEffect, useRef, useState } from 'react';
-import { auth } from '../firebase';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import './ListeOverlay.css';
-import { loadLocal, KEYS } from '../utils/offlineUtils';
+import { loadLocal, saveLocal, KEYS, isOnline } from '../utils/offlineUtils';
 
 export default function ListeOverlay({ onClose }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const db = getFirestore();
+  const overlayRef = useRef(null);
+  const touchStartX = useRef(null);
+
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const overlayRef = useRef(null);
 
+  // --- Charger localement et Firestore en arrière-plan
   useEffect(() => {
-    const fetchList = async () => {
-      // ✅ Charger la liste depuis localStorage
-      const localData = loadLocal(KEYS.liste);
-      setItems(localData);
-      setLoading(false);
+    const user = auth.currentUser;
+    if (!user) return;
 
-      const user = auth.currentUser;
-      if (!user) return;
+    // ⚡ Charger depuis localStorage immédiatement
+    const localData = loadLocal(KEYS.liste) || [];
+    setItems(localData);
+    setLoading(false);
 
+    // 🔄 Sync Firestore si online
+    const syncFirestore = async () => {
+      if (!isOnline()) return;
       try {
         const docRef = doc(db, 'listes_courses', user.uid);
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          const firestoreItems = data.items || [];
-          setItems(firestoreItems);
-          // Ici on peut sauvegarder en local si tu veux
-          // saveLocal(KEYS.liste, firestoreItems); // facultatif
-        }
-      } catch (error) {
-        console.error('Erreur de chargement:', error);
+        const firestoreItems = docSnap.exists() ? docSnap.data().items || [] : [];
+        // Fusion avec local
+        const merged = [...firestoreItems, ...localData];
+        const unique = Array.from(new Map(merged.map(p => [p.id || JSON.stringify(p), p])).values());
+        setItems(unique);
+        saveLocal(KEYS.liste, unique);
+        await setDoc(docRef, { items: unique }, { merge: true });
+      } catch (err) {
+        console.error('Erreur de chargement Firestore:', err);
       }
     };
-    fetchList();
-  }, [db]);
 
-  const updateFirestoreList = async (newItems) => {
-    setItems(newItems);
-    // saveLocal(KEYS.liste, newItems); // facultatif
-    const user = auth.currentUser;
-    if (!user) return;
-    try {
-      const docRef = doc(db, 'listes_courses', user.uid);
-      await setDoc(docRef, { items: newItems }, { merge: true });
-    } catch (error) {
-      console.error('Erreur Firestore:', error);
-    }
-  };
+    syncFirestore();
 
+    // ⚡ Écoute les changements locaux pour mise à jour en temps réel
+    const handleStorageChange = (e) => {
+      if (e.key === KEYS.liste) {
+        const updated = loadLocal(KEYS.liste) || [];
+        setItems(updated);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // --- Toggle checked
   const toggleChecked = async (id) => {
     const updatedItems = items.map(item =>
       item.id === id ? { ...item, checked: !item.checked } : item
     );
-    await updateFirestoreList(updatedItems);
+    setItems(updatedItems);
+    saveLocal(KEYS.liste, updatedItems);
+
+    const user = auth.currentUser;
+    if (!user) return;
+    if (isOnline()) {
+      try {
+        const docRef = doc(db, 'listes_courses', user.uid);
+        await setDoc(docRef, { items: updatedItems }, { merge: true });
+      } catch (err) {
+        console.error('Erreur Firestore:', err);
+      }
+    }
   };
 
-  const touchStartX = useRef(null);
+  // --- Swipe pour fermer
   const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
   const handleTouchEnd = (e) => {
     const deltaX = e.changedTouches[0].clientX - touchStartX.current;

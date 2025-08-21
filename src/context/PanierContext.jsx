@@ -1,4 +1,3 @@
-// context/PanierContext.js
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -32,7 +31,14 @@ export function PanierProvider({ children }) {
           const firestoreArticles = snap.exists() ? snap.data().articles || [] : [];
           const pending = getPendingPanier();
 
-          let merged = [...firestoreArticles, ...pending.map(p => p.product || p), ...local];
+          // ✅ Fusion avec ajout de ajoute_le si manquant
+          let merged = [
+            ...firestoreArticles.map(p => ({ ...p, ajoute_le: p.ajoute_le || new Date().toISOString() })),
+            ...pending.map(p => ({ ...(p.product || p), ajoute_le: (p.product?.ajoute_le || p.ajoute_le) || new Date().toISOString() })),
+            ...local.map(p => ({ ...p, ajoute_le: p.ajoute_le || new Date().toISOString() }))
+          ];
+
+          // Déduplication
           const unique = Array.from(
             new Map(merged.map(p => [p.idSansCode || p.code || JSON.stringify(p), p])).values()
           );
@@ -57,7 +63,9 @@ export function PanierProvider({ children }) {
 
   // --- Ajouter un produit
   const addToPanier = async (produit) => {
-    const updated = [...panier, produit];
+    const produitWithDate = { ...produit, ajoute_le: produit.ajoute_le || new Date().toISOString() };
+
+    const updated = [...panier, produitWithDate];
     setPanier(updated);
     saveLocal(KEYS.panier, updated);
 
@@ -66,22 +74,24 @@ export function PanierProvider({ children }) {
         const ref = doc(db, 'paniers', auth.currentUser.uid);
         const snap = await getDoc(ref);
         const firestoreArticles = snap.exists() ? snap.data().articles || [] : [];
-        await setDoc(ref, { articles: [...firestoreArticles, produit], updatedAt: new Date() }, { merge: true });
+        await setDoc(ref, { articles: [...firestoreArticles, produitWithDate], updatedAt: new Date() }, { merge: true });
       } catch (err) {
         console.error("Erreur ajout Firestore, fallback pending:", err);
-        addPending(KEYS.pending.panier, { action: 'add', product: produit });
+        addPending(KEYS.pending.panier, { action: 'add', product: produitWithDate });
       }
     } else {
-      addPending(KEYS.pending.panier, { action: 'add', product: produit });
+      addPending(KEYS.pending.panier, { action: 'add', product: produitWithDate });
     }
   };
 
   // --- Supprimer un produit
   const removeFromPanier = async (produit) => {
-    const updated = panier.filter(p =>
-      (produit.code ? p.code !== produit.code : true) &&
-      (produit.idSansCode ? p.idSansCode !== produit.idSansCode : true)
-    );
+    const updated = panier.filter(p => {
+      const idProduit = produit.idSansCode || produit.code;
+      const idCourant = p.idSansCode || p.code;
+      return idProduit !== idCourant;
+    });
+
     setPanier(updated);
     saveLocal(KEYS.panier, updated);
 
@@ -113,13 +123,16 @@ export function PanierProvider({ children }) {
 
       for (const action of pending) {
         if (action.action === 'add' && action.product) {
-          firestoreArticles.push(action.product);
+          // Ajoute ajoute_le si manquant
+          const prod = { ...action.product, ajoute_le: action.product.ajoute_le || new Date().toISOString() };
+          firestoreArticles.push(prod);
         }
         if (action.action === 'remove') {
-          firestoreArticles = firestoreArticles.filter(p =>
-            (action.code ? p.code !== action.code : true) &&
-            (action.idSansCode ? p.idSansCode !== action.idSansCode : true)
-          );
+          firestoreArticles = firestoreArticles.filter(p => {
+            const idAction = action.idSansCode || action.code;
+            const idCourant = p.idSansCode || p.code;
+            return idAction !== idCourant;
+          });
         }
       }
 

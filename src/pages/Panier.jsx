@@ -1,5 +1,5 @@
-// Panier.jsx (corrigé et stable)
-import React, { useEffect, useState, useRef } from 'react';
+// Panier.jsx (corrigé et stable, tri décroissant par ajoute_le)
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePanier } from '../context/PanierContext';
 import ListeOverlay from '../components/ListeOverlay';
@@ -40,7 +40,7 @@ export default function Panier() {
     if (!panier || panier.length === 0) {
       const local = loadLocal(KEYS.panier) || [];
       if (local.length > 0) {
-        setPanier(local); // on remplit d’un coup, pas de forEach
+        setPanier(local);
       }
     }
   }, [panier, setPanier]);
@@ -83,32 +83,39 @@ export default function Panier() {
     };
   }, []);
 
+  // --- Trier le panier en ordre décroissant par ajoute_le
+  const sortedPanier = useMemo(() => {
+    if (!panier) return [];
+    return [...panier].sort((a, b) => {
+      const dateA = a.ajoute_le ? new Date(a.ajoute_le).getTime() : 0;
+      const dateB = b.ajoute_le ? new Date(b.ajoute_le).getTime() : 0;
+      return dateB - dateA; // décroissant
+    });
+  }, [panier]);
+
   return (
     <div className="panier-page relative">
       {message && <div className="camera-message">{message}</div>}
 
-      <div className={`panier-content scrollable-content${modalVisible ? ' modal-blur' : ''}`}>
-        <h1 className="total-header">
-          {t('total')}: {total.toFixed(2)} FC
-        </h1>
+      <h1 className="total-header">
+        {t('total')}: {total.toFixed(2)} FC
+      </h1>
 
+      <div className={`panier-content scrollable-content${modalVisible ? ' modal-blur' : ''}`}>
         {!isOnlineState && (
           <p className="offline-warning">
             {t('offlineCartNotice') || 'Mode hors-ligne. Données locales utilisées.'}
           </p>
         )}
 
-        {(!panier || panier.length === 0) ? (
+        {(!sortedPanier || sortedPanier.length === 0) ? (
           <p className="empty-text">
             {t('cartEmptyMessage') || 'Votre panier est vide.'}
           </p>
         ) : (
           <ul className="product-list">
-            {panier.map((item, idx) => (
-              <li
-                key={item.idSansCode || item.code || idx}
-                className="product-item"
-              >
+            {sortedPanier.map((item, idx) => (
+              <li key={item.idSansCode || item.code || idx} className="product-item">
                 <div className="item-name">{item.nom}</div>
                 <div className="item-price">
                   {(item.prix || 0).toFixed(2)} FC
@@ -146,7 +153,7 @@ export default function Panier() {
       )}
 
       <div className="floating-button-row">
-        {panier.length > 0 && (
+        {sortedPanier.length > 0 && (
           <button
             className="button-base validate-btn"
             onClick={() => navigate('/paiement')}

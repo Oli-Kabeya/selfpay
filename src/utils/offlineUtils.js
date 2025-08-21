@@ -17,7 +17,7 @@ export const KEYS = {
 };
 
 // ⏱ Gestion batch sync (sécurité toutes les heures)
-const SYNC_INTERVAL_MS = 60 * 60 * 1000; 
+const SYNC_INTERVAL_MS = 60 * 60 * 1000;
 let lastSync = 0;
 
 // 📌 Charger données locales
@@ -65,67 +65,59 @@ export async function syncPendingData(force = false) {
   if (!force && now - lastSync < SYNC_INTERVAL_MS) return;
   lastSync = now;
 
-  // --- 🔹 Sync panier
-  const pendingPanier = loadLocal(KEYS.pending.panier);
-  if (pendingPanier.length) {
-    try {
+  try {
+    // --- 🔹 Sync panier
+    const pendingPanier = loadLocal(KEYS.pending.panier);
+    if (pendingPanier.length) {
       const ref = doc(db, "paniers", uid);
       const snap = await getDoc(ref);
       let currentArticles = snap.exists() ? snap.data().articles || [] : [];
 
       for (const action of pendingPanier) {
         if (action.action === "add") {
-          currentArticles.push(action.product);
+          currentArticles.push({ ...action.product, ajoute_le: action.product.ajoute_le || new Date().toISOString() });
         }
         if (action.action === "remove") {
-          currentArticles = currentArticles.filter(p =>
-            (action.code ? p.code !== action.code : true) &&
-            (action.idSansCode ? p.idSansCode !== action.idSansCode : true)
-          );
+          const idAction = action.idSansCode || action.code;
+          currentArticles = currentArticles.filter(p => (p.idSansCode || p.code) !== idAction);
         }
       }
 
       await setDoc(ref, { articles: currentArticles, updatedAt: new Date() }, { merge: true });
-      saveLocal(KEYS.panier, currentArticles); // ✅ met à jour local aussi
+      saveLocal(KEYS.panier, currentArticles);
       clearPendingPanier();
-    } catch (err) {
-      console.error("Erreur sync panier:", err);
     }
-  }
 
-  // --- 🔹 Sync historique
-  const pendingHist = loadLocal(KEYS.pending.historique);
-  if (pendingHist.length) {
-    try {
+    // --- 🔹 Sync historique
+    const pendingHist = loadLocal(KEYS.pending.historique);
+    if (pendingHist.length) {
       for (const tx of pendingHist) {
-        await addDoc(collection(db, "achats", uid, "liste"), tx);
+        await addDoc(collection(db, "achats", uid, "liste"), { ...tx, ajoute_le: tx.ajoute_le || new Date().toISOString() });
       }
       saveLocal(KEYS.pending.historique, []);
-    } catch (err) {
-      console.error("Erreur sync historique:", err);
     }
-  }
 
-  // --- 🔹 Sync liste
-  const pendingListe = loadLocal(KEYS.pending.liste);
-  if (pendingListe.length) {
-    try {
+    // --- 🔹 Sync liste
+    const pendingListe = loadLocal(KEYS.pending.liste);
+    if (pendingListe.length) {
       for (const item of pendingListe) {
-        await setDoc(doc(db, "listes_courses", uid, item.id), item, { merge: true });
+        const itemWithDate = { ...item, ajoute_le: item.ajoute_le || new Date().toISOString() };
+        await setDoc(doc(db, "listes_courses", uid, item.id), itemWithDate, { merge: true });
       }
       saveLocal(KEYS.pending.liste, []);
-    } catch (err) {
-      console.error("Erreur sync liste:", err);
     }
-  }
 
-  console.log("✅ Sync offline terminé");
+    console.log("✅ Sync offline terminé");
+  } catch (err) {
+    console.error("Erreur sync global:", err);
+  }
 }
 
 // 📦 Ajouter au panier
 export async function addToPanier(product) {
+  const timestampedProduct = { ...product, ajoute_le: new Date().toISOString() };
   const panier = loadLocal(KEYS.panier);
-  panier.push(product);
+  panier.push(timestampedProduct);
   saveLocal(KEYS.panier, panier);
 
   if (auth.currentUser && isOnline()) {
@@ -133,28 +125,25 @@ export async function addToPanier(product) {
       const ref = doc(db, "paniers", auth.currentUser.uid);
       const snap = await getDoc(ref);
       const currentArticles = snap.exists() ? snap.data().articles || [] : [];
-      await setDoc(ref, { articles: [...currentArticles, product], updatedAt: new Date() }, { merge: true });
+      await setDoc(ref, { articles: [...currentArticles, timestampedProduct], updatedAt: new Date() }, { merge: true });
     } catch (err) {
       console.error("Erreur ajout panier Firestore, fallback offline:", err);
-      addPending(KEYS.pending.panier, { action: "add", product });
+      addPending(KEYS.pending.panier, { action: "add", product: timestampedProduct });
     }
   } else {
-    addPending(KEYS.pending.panier, { action: "add", product });
+    addPending(KEYS.pending.panier, { action: "add", product: timestampedProduct });
   }
 }
 
 // 📦 Supprimer du panier
 export async function removeFromPanier(product) {
-  const panier = loadLocal(KEYS.panier).filter(p =>
-    (product.code ? p.code !== product.code : true) &&
-    (product.idSansCode ? p.idSansCode !== product.idSansCode : true)
-  );
-  saveLocal(KEYS.panier, panier);
+  const updated = loadLocal(KEYS.panier).filter(p => (p.idSansCode || p.code) !== (product.idSansCode || product.code));
+  saveLocal(KEYS.panier, updated);
 
   if (auth.currentUser && isOnline()) {
     try {
       const ref = doc(db, "paniers", auth.currentUser.uid);
-      await setDoc(ref, { articles: panier, updatedAt: new Date() }, { merge: true });
+      await setDoc(ref, { articles: updated, updatedAt: new Date() }, { merge: true });
     } catch {
       addPending(KEYS.pending.panier, { action: "remove", code: product.code, idSansCode: product.idSansCode });
     }
@@ -165,22 +154,24 @@ export async function removeFromPanier(product) {
 
 // 📦 Ajouter à l’historique
 export async function addToHistorique(transaction) {
+  const timestampedTx = { ...transaction, ajoute_le: new Date().toISOString() };
   const historique = loadLocal(KEYS.historique);
-  historique.push(transaction);
+  historique.push(timestampedTx);
   saveLocal(KEYS.historique, historique);
 
   if (isOnline()) await syncPendingData(true);
-  else addPending(KEYS.pending.historique, transaction);
+  else addPending(KEYS.pending.historique, timestampedTx);
 }
 
 // 📦 Ajouter à la liste de courses
 export async function addToListe(item) {
+  const timestampedItem = { ...item, ajoute_le: new Date().toISOString() };
   const liste = loadLocal(KEYS.liste);
-  liste.push(item);
+  liste.push(timestampedItem);
   saveLocal(KEYS.liste, liste);
 
   if (isOnline()) await syncPendingData(true);
-  else addPending(KEYS.pending.liste, item);
+  else addPending(KEYS.pending.liste, timestampedItem);
 }
 
 // 📦 Synchroniser le profil
@@ -198,7 +189,7 @@ export async function syncProfil() {
 
 // 🛠 Initialisation sync offline
 export function initOfflineSync() {
-  window.addEventListener("online", () => syncPendingData(true)); // ✅ force sync immédiat
-  syncPendingData(true); // tentative au démarrage
+  window.addEventListener("online", () => syncPendingData(true));
+  syncPendingData(true);
   setInterval(() => syncPendingData(false), SYNC_INTERVAL_MS);
 }
