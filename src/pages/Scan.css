@@ -234,3 +234,117 @@
   90% { opacity: 1; transform: translate(-50%, 0); }
   100% { opacity: 0; transform: translate(-50%, 20px); }
 }
+
+
+/* Modal overlay fond transparent + blur */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Modal contenu centré avec style adaptatif thème */
+.modal-content {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  padding: 28px 36px;
+  border-radius: 16px;
+  max-width: 360px;
+  width: 90%;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  user-select: none;
+  line-height: 1.4;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Texte modale */
+.modal-content p {
+  margin-bottom: 24px;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* Boutons modale : style plus moderne, clair/foncé adaptatif */
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+
+.modal-buttons .button-base {
+  min-width: 100px;
+  padding: 12px 24px;
+  border-radius: 28px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  user-select: none;
+  border: none;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Bouton OK: fond vert clair */
+.modal-buttons .button-base:first-child {
+  background-color: #28a745;
+  color: white;
+}
+
+.modal-buttons .button-base:first-child:hover {
+  background-color: #1e7e34;
+}
+
+/* Bouton Annuler: fond gris clair avec texte sombre */
+.modal-buttons .button-base:last-child {
+  background-color: var(--color-bg);
+  color: var(--color-text-secondary);
+  border: 2px solid var(--color-text-secondary);
+}
+
+.modal-buttons .button-base:last-child:hover {
+  background-color: var(--color-text-secondary);
+  color: var(--color-bg);
+}
+
+.quantity-input {
+  width: 100%;
+  padding: 10px 14px;
+  margin: 12px 0;
+  border-radius: 8px;
+  font-size: 16px;
+  border: 1px solid var(--border-color);
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  transition: all 0.2s ease-in-out;
+}
+
+.quantity-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 6px var(--accent-color);
+}
+
+:root {
+  --border-color: #d0d0d0;
+  --input-bg: #ffffff;
+  --text-color: #000000;
+  --accent-color: #3b82f6;
+}
+
+[data-theme="dark"] {
+  --border-color: #555555;
+  --input-bg: #1e1e1e;
+  --text-color: #f5f5f5;
+  --accent-color: #60a5fa;
+}
+

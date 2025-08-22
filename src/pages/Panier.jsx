@@ -1,4 +1,4 @@
-// Panier.jsx (corrigé et stable, tri décroissant par ajoute_le)
+// Panier.jsx (corrigé et stable, gestion quantités + tri décroissant par ajoute_le + modal réduction)
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePanier } from '../context/PanierContext';
@@ -17,6 +17,9 @@ export default function Panier() {
   const [isOnlineState, setIsOnlineState] = useState(isOnline());
   const [modalVisible, setModalVisible] = useState(false);
   const [produitToDelete, setProduitToDelete] = useState(null);
+  const [reduceModalVisible, setReduceModalVisible] = useState(false);
+  const [produitToReduce, setProduitToReduce] = useState(null);
+
   const swipeStartX = useRef(null);
 
   // --- Gestion connexion online/offline
@@ -45,8 +48,11 @@ export default function Panier() {
     }
   }, [panier, setPanier]);
 
-  // --- Total
-  const total = panier.reduce((sum, item) => sum + (item.prix || 0), 0);
+  // --- Total avec quantités
+  const total = panier.reduce(
+    (sum, item) => sum + (item.prix || 0) * (item.quantity || 1),
+    0
+  );
 
   // --- Suppression produit
   const confirmRemoveProduit = (produit) => {
@@ -66,6 +72,32 @@ export default function Panier() {
   const annulerSuppression = () => {
     setModalVisible(false);
     setProduitToDelete(null);
+  };
+
+  // --- Réduction de quantité
+  const confirmReduceProduit = (produit) => {
+    setProduitToReduce(produit);
+    setReduceModalVisible(true);
+  };
+
+  const validerReduction = async () => {
+    if (!produitToReduce) return;
+    const updatedPanier = panier.map((p) =>
+      p.code === produitToReduce.code
+        ? { ...p, quantity: (p.quantity || 1) - 1 }
+        : p
+    ).filter(p => (p.quantity || 1) > 0);
+
+    setPanier(updatedPanier);
+    setReduceModalVisible(false);
+    setProduitToReduce(null);
+    setMessage(t('quantityReduced') || 'Quantité réduite');
+    setTimeout(() => setMessage(''), 2000);
+  };
+
+  const annulerReduction = () => {
+    setReduceModalVisible(false);
+    setProduitToReduce(null);
   };
 
   // --- Swipe pour overlay liste
@@ -101,7 +133,7 @@ export default function Panier() {
         {t('total')}: {total.toFixed(2)} FC
       </h1>
 
-      <div className={`panier-content scrollable-content${modalVisible ? ' modal-blur' : ''}`}>
+      <div className={`panier-content scrollable-content${(modalVisible || reduceModalVisible) ? ' modal-blur' : ''}`}>
         {!isOnlineState && (
           <p className="offline-warning">
             {t('offlineCartNotice') || 'Mode hors-ligne. Données locales utilisées.'}
@@ -115,11 +147,23 @@ export default function Panier() {
         ) : (
           <ul className="product-list">
             {sortedPanier.map((item, idx) => (
-              <li key={item.idSansCode || item.code || idx} className="product-item">
-                <div className="item-name">{item.nom}</div>
-                <div className="item-price">
-                  {(item.prix || 0).toFixed(2)} FC
+              <li key={`${item.code || item.idSansCode || idx}`} className="product-item">
+                <div className="item-name">
+                  {item.nom}
+                  {item.quantity && item.quantity > 1 && (
+                    <span className="item-quantity"> x{item.quantity}</span>
+                  )}
                 </div>
+                <div className="item-price">
+                  {(item.prix * (item.quantity || 1)).toFixed(2)} FC
+                </div>
+                <button
+                  className="reduce-btn"
+                  aria-label={t('reduceQuantity')}
+                  onClick={() => confirmReduceProduit(item)}
+                >
+                  −
+                </button>
                 <button
                   className="remove-btn"
                   aria-label={t('removeProduct')}
@@ -133,6 +177,7 @@ export default function Panier() {
         )}
       </div>
 
+      {/* Modal suppression */}
       {modalVisible && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -145,6 +190,26 @@ export default function Panier() {
                 {t('ok') || 'OK'}
               </button>
               <button className="button-base" onClick={annulerSuppression}>
+                {t('cancel') || 'Annuler'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal réduction quantité */}
+      {reduceModalVisible && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <p>
+              {t('reduceConfirmMessage', { produit: produitToReduce?.nom }) ||
+                `Veuillez retirer 1 ${produitToReduce?.nom} de votre panier physique. Confirmez ?`}
+            </p>
+            <div className="modal-buttons">
+              <button className="button-base" onClick={validerReduction}>
+                {t('ok') || 'OK'}
+              </button>
+              <button className="button-base" onClick={annulerReduction}>
                 {t('cancel') || 'Annuler'}
               </button>
             </div>

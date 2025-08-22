@@ -119,8 +119,8 @@ export default function Liste() {
 
   return (
     <div className="liste-page">
+      <h1 className="liste-title">{t('shoppingList') || 'Liste de courses'}</h1>
       <div className="liste-content">
-        <h1 className="liste-title">{t('shoppingList') || 'Liste de courses'}</h1>
         {items.length === 0 ? (
           <p>{t('emptyShoppingList') || 'Votre liste est vide.'}</p>
         ) : (
@@ -166,7 +166,9 @@ export default function Liste() {
           </ul>
         )}
 
-        {items.length > 0 && (
+        
+      </div>
+      {items.length > 0 && (
           <div className="liste-actions">
             <button 
               onClick={deleteChecked} 
@@ -178,7 +180,6 @@ export default function Liste() {
             <button onClick={deleteAll} className="delete-all">{t('deleteAll')}</button>
           </div>
         )}
-      </div>
 
       <div className="liste-input-container">
         <input

@@ -1,24 +1,26 @@
 .liste-page {
   background-color: var(--color-bg);
   color: var(--color-text);
-  min-height: 100vh;
-  display: flex;
+  overflow: hidden;
+  display:flex;
   flex-direction: column;
-  position: relative;
+  height:100vh;
 }
 
 .liste-content {
-  flex-grow: 1;
-  padding: 16px;
-  padding-bottom: 120px; /* espace pour input et footer */
-  max-width: 480px;
-  margin: 0 auto;
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+  padding-right: 3rem; /* espace pour boutons flottants */
+  padding-bottom: 30vh; /* espace pour input et footer */
+  width: 100%;
 }
 
 .liste-title {
   font-size: 1.5rem;
   font-weight: bold;
   margin-bottom: 1rem;
+  text-align: center;
 }
 
 .liste-ul {
@@ -59,9 +61,11 @@
 }
 
 .liste-actions {
+  margin-top: 2vh;
+  margin-bottom: 25vh;
+  align-items: center;
+  justify-content: center;
   display: flex;
-  gap: 8px;
-  margin-top: 12px;
 }
 
 .action-btn {

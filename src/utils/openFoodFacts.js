@@ -89,7 +89,7 @@ export async function fetchProductByBarcode(barcode) {
 
 // utils/openFoodFacts.js
 
-export async function fetchSuggestions(barcode) {
+/*export async function fetchSuggestions(barcode) {
   try {
     // On peut utiliser le paramètre 'search_terms' pour recherche approximative
     const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${barcode}&search_simple=1&action=process&json=1&page_size=3`;
@@ -110,5 +110,5 @@ export async function fetchSuggestions(barcode) {
     console.error("Erreur fetchSuggestions:", err);
     return [];
   }
-}
+}*/
 

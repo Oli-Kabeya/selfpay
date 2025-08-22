@@ -1,4 +1,4 @@
-// Scan.jsx
+// Scan.jsx (corrigé avec modal de saisie quantité)
 import React, { useEffect, useState, useRef } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { useLocation } from 'react-router-dom';
@@ -6,9 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { X, Barcode } from 'lucide-react';
 import { usePanier } from '../context/PanierContext';
 import ListeOverlay from '../components/ListeOverlay';
-import SuggestionsModal from '../components/SuggestionsModal';
 import SansCodesDropdown from '../components/SansCodesDropdown';
-import { fetchExactProduct, fetchSuggestions } from '../utils/openFoodFacts';
+import { fetchExactProduct } from '../utils/openFoodFacts';
 import { loadLocal, syncPendingData, isOnline as checkOnline } from '../utils/offlineUtils';
 import './Scan.css';
 
@@ -23,9 +22,12 @@ export default function Scan() {
   const [isOnline, setIsOnline] = useState(checkOnline());
   const [produitsSansCodes, setProduitsSansCodes] = useState([]);
   const [scanCountdown, setScanCountdown] = useState(10);
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [showSansCodes, setShowSansCodes] = useState(false);
+
+  // --- Nouveaux états pour modal quantité
+  const [quantityModalVisible, setQuantityModalVisible] = useState(false);
+  const [produitEnAttente, setProduitEnAttente] = useState(null);
+  const [quantite, setQuantite] = useState(1);
 
   const videoRef = useRef(null);
   const codeReaderRef = useRef(null);
@@ -48,12 +50,6 @@ export default function Scan() {
       window.removeEventListener('online', updateStatus);
       window.removeEventListener('offline', updateStatus);
     };
-  }, []);
-
-  // --- Charger produits sans codes
-  useEffect(() => {
-    const cached = loadLocal('produitsSansCodes') || [];
-    setProduitsSansCodes(cached);
   }, []);
 
   // --- Swipe overlay
@@ -97,45 +93,50 @@ export default function Scan() {
     setMessage('');
   };
 
+  // --- Afficher modal de quantité pour un produit
+  const demanderQuantite = (produit) => {
+    setProduitEnAttente(produit);
+    setQuantite(1);
+    setQuantityModalVisible(true);
+  };
+
+  const confirmerQuantite = async () => {
+    if (produitEnAttente) {
+      await addToPanier({ ...produitEnAttente, quantity: quantite });
+      setMessage(t('productAdded') || 'Produit ajouté');
+      setTimeout(() => setMessage(''), 1500);
+    }
+    setQuantityModalVisible(false);
+    setProduitEnAttente(null);
+    stopCamera();
+  };
+
+  const annulerQuantite = () => {
+    setQuantityModalVisible(false);
+    setProduitEnAttente(null);
+    stopCamera();
+  };
+
   // --- Ajouter produit scanné
   const ajouterProduit = async (code) => {
     if (!code) return;
 
-    // 1️⃣ Essai exact
     const produitExact = await fetchExactProduct(code);
 
     if (produitExact) {
-      await addToPanier(produitExact);
-      setMessage(t('productAdded') || 'Produit ajouté');
-      setTimeout(() => setMessage(''), 1500);
-      stopCamera();
+      demanderQuantite(produitExact);
       return;
     }
 
-    // 2️⃣ Pas d’exact → chercher suggestions
-    const apiSuggestions = await fetchSuggestions(code);
-
-    if (apiSuggestions && apiSuggestions.length) {
-      setSuggestions(apiSuggestions);
-      setShowSuggestions(true);
-      return;
-    }
-
-    // 3️⃣ Rien trouvé → fallback manuel
+    // Fallback produit manuel
     const produitManuel = { nom: `${t('manualProduct')} ${code.slice(0,5)}`, prix: 1, code };
-    await addToPanier(produitManuel);
-    setMessage(t('productAdded') || 'Produit ajouté');
-    setTimeout(() => setMessage(''), 1500);
-    stopCamera();
+    demanderQuantite(produitManuel);
   };
 
   const ajouterProduitSansCodeDirect = async (produit) => {
     if (!produit) return;
     const produitAjout = { nom: produit.nom, prix: produit.prix, code: '', idSansCode: produit.id };
-    await addToPanier(produitAjout);
-    setMessage(t('productAdded') || 'Produit ajouté');
-    setTimeout(() => setMessage(''), 1500);
-    stopCamera();
+    demanderQuantite(produitAjout);
   };
 
   // --- Start scan
@@ -233,18 +234,53 @@ export default function Scan() {
         </div>
       )}
 
-      <SuggestionsModal
-        suggestions={suggestions}
-        onClose={() => setShowSuggestions(false)}
-        onSelect={async (p) => {
-          setShowSuggestions(false);
-          setSuggestions([]);
-          await addToPanier(p);
-          setMessage(t('productAdded') || 'Produit ajouté');
-          setTimeout(() => setMessage(''), 1500);
-          stopCamera();
-        }}
-      />
+      {/* --- Modal quantité --- */}
+      {quantityModalVisible && (
+  <div className="modal-overlay">
+    <div className="modal-content">
+      <h2>{t('enterQuantity')}</h2>
+     <input
+       type="number"
+        min="1"
+        value={quantite}
+        onChange={(e) => {
+        let val = e.target.value;
+
+    // Si le champ est vide → garder vide
+    if (val === "") {
+      setQuantite("");
+      return;
+    }
+
+    // Convertir en nombre pour supprimer les zéros initiaux
+    let num = Number(val);
+
+    // Bloquer en dessous de 1 uniquement au moment de la saisie
+    if (num < 1) {
+      setQuantite("");
+    } else {
+      setQuantite(num);
+    }
+  }}
+  className="quantity-input"
+/>
+
+      <div className="modal-buttons">
+        <button
+          className="button-base"
+          onClick={confirmerQuantite}
+          disabled={!quantite || quantite < 1}
+        >
+          {t('ok')}
+        </button>
+        <button className="button-base" onClick={annulerQuantite}>
+          {t('cancel')}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
       {message && (
         <div className="global-message">{message}</div>
