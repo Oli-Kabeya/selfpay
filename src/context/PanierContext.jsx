@@ -1,13 +1,8 @@
+// PanierContext.jsx
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import {
-  KEYS,
-  addPending,
-  getPendingPanier,
-  clearPendingPanier,
-  isOnline
-} from '../utils/offlineUtils';
+import { KEYS, addPending, getPendingPanier, clearPendingPanier, isOnline } from '../utils/offlineUtils';
 
 const PanierContext = createContext();
 export const usePanier = () => useContext(PanierContext);
@@ -46,9 +41,7 @@ export function PanierProvider({ children }) {
           savePanierLocal(unique);
           clearPendingPanier();
           await setDoc(ref, { articles: unique, updatedAt: new Date() }, { merge: true });
-        } catch (err) {
-          console.error("Erreur init panier:", err);
-        }
+        } catch (err) { console.error("Erreur init panier:", err); }
       }
     });
 
@@ -68,10 +61,7 @@ export function PanierProvider({ children }) {
       savePanierLocal(updated);
 
       if (auth.currentUser && isOnline()) {
-        syncWithFirestore(updated).catch(err => {
-          console.error("Erreur sync Firestore:", err);
-          addPending(KEYS.pending.panier, { action: 'add', product: produit });
-        });
+        syncWithFirestore(updated).catch(err => { console.error("Erreur sync Firestore:", err); addPending(KEYS.pending.panier, { action: 'add', product: produit }); });
       } else {
         addPending(KEYS.pending.panier, { action: 'add', product: produit });
       }
@@ -83,7 +73,7 @@ export function PanierProvider({ children }) {
   const updateQuantity = (produit, nouvelleQuantite) => {
     const idProduit = produit.idSansCode || produit.code;
     setPanier(prev => {
-      let updated = nouvelleQuantite <= 0
+      const updated = nouvelleQuantite <= 0
         ? prev.filter(p => (p.idSansCode || p.code) !== idProduit)
         : prev.map(p => (p.idSansCode || p.code) === idProduit ? { ...p, quantite: nouvelleQuantite } : p);
 
@@ -100,12 +90,7 @@ export function PanierProvider({ children }) {
   };
 
   const removeFromPanier = (produit) => {
-    const updated = panier.filter(p => {
-      const idProduit = produit.idSansCode || produit.code;
-      const idCourant = p.idSansCode || p.code;
-      return idProduit !== idCourant;
-    });
-
+    const updated = panier.filter(p => (p.idSansCode || p.code) !== (produit.idSansCode || produit.code));
     setPanier(updated);
     savePanierLocal(updated);
 
@@ -149,10 +134,7 @@ export function PanierProvider({ children }) {
           );
         }
         if (action.action === 'remove') {
-          firestoreArticles = firestoreArticles.filter(p => {
-            const idAction = action.idSansCode || action.code;
-            return (p.idSansCode || p.code) !== idAction;
-          });
+          firestoreArticles = firestoreArticles.filter(p => (p.idSansCode || p.code) !== (action.idSansCode || action.code));
         }
       }
 
@@ -161,18 +143,11 @@ export function PanierProvider({ children }) {
       savePanierLocal(unique);
       await syncWithFirestore(unique);
       clearPendingPanier();
-    } catch (err) {
-      console.error("Erreur sync panier:", err);
-    } finally {
-      syncingRef.current = false;
-    }
+    } catch (err) { console.error("Erreur sync panier:", err); }
+    finally { syncingRef.current = false; }
   };
 
-  useEffect(() => {
-    const handleOnline = () => syncPending();
-    window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
-  }, []);
+  useEffect(() => { window.addEventListener("online", syncPending); return () => window.removeEventListener("online", syncPending); }, []);
 
   return (
     <PanierContext.Provider value={{ panier, addToPanier, updateQuantity, removeFromPanier, syncPending }}>

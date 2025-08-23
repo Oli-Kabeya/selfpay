@@ -1,4 +1,4 @@
-// Scan.jsx (corrigé : appel addToPanier + input fiable)
+// Scan.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { useLocation } from 'react-router-dom';
@@ -67,7 +67,6 @@ export default function Scan() {
     };
   }, []);
 
-  // --- Stop caméra
   const stopCamera = () => {
     scanningRef.current = false;
     clearTimeout(timeoutRef.current);
@@ -120,7 +119,6 @@ export default function Scan() {
     setQuantite(1);
   };
 
-  // --- Ajouter produit scanné
   const ajouterProduit = async (code) => {
     if (!code) return;
     const produitExact = await fetchExactProduct(code);
@@ -182,21 +180,9 @@ export default function Scan() {
     }
   };
 
-  useEffect(() => {
-    if(scanning) startScan();
-    else stopCamera();
-  }, [scanning]);
-
-  useEffect(() => {
-    stopCamera();
-    setShowSansCodes(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const handleBeforeUnload = () => stopCamera();
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
+  useEffect(() => { if(scanning) startScan(); else stopCamera(); }, [scanning]);
+  useEffect(() => { stopCamera(); setShowSansCodes(false); }, [location.pathname]);
+  useEffect(() => { window.addEventListener('beforeunload', stopCamera); return () => window.removeEventListener('beforeunload', stopCamera); }, []);
 
   return (
     <div className="scan-page">
@@ -204,20 +190,14 @@ export default function Scan() {
       <p className="scan-subtitle">{t('tapToAddProduct')}</p>
 
       {!scanning && !showSansCodes && (
-        <div
-          className="scan-button-container"
-          onClick={() => setScanning(true)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={e => e.key === 'Enter' && setScanning(true)}
-        >
+        <div className="scan-button-container" onClick={()=>setScanning(true)} role="button" tabIndex={0} onKeyDown={e=>e.key==='Enter' && setScanning(true)}>
           <div className="scan-button"><Barcode size={40}/></div>
         </div>
       )}
 
       {scanning && (
         <div className="camera-container">
-          <video ref={videoRef} muted autoPlay playsInline className="camera-video" />
+          <video ref={videoRef} muted autoPlay playsInline className="camera-video"/>
           <div className="scan-countdown">
             <div className="scan-progress" style={{ width: `${(scanCountdown/10)*100}%` }}></div>
             <span>{scanCountdown}s</span>
@@ -230,58 +210,22 @@ export default function Scan() {
         </div>
       )}
 
-      {showSansCodes && (
-        <div className="sans-codes-wrapper">
-          <SansCodesDropdown
-            onAdd={ajouterProduitSansCodeDirect}
-            onClose={() => setShowSansCodes(false)}
-            produits={produitsSansCodes}
-          />
-        </div>
-      )}
+      {showSansCodes && <SansCodesDropdown onAdd={ajouterProduitSansCodeDirect} onClose={()=>setShowSansCodes(false)} produits={produitsSansCodes}/>}
 
-      {/* --- Modal quantité --- */}
       {quantityModalVisible && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h2>{t('enterQuantity')}</h2>
-            <input
-              type="number"
-              min="1"
-              value={quantite}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === "") {
-                  setQuantite("");
-                  return;
-                }
-                const num = Number(val);
-                if (!isNaN(num) && num >= 1) {
-                  setQuantite(num);
-                }
-              }}
-              onBlur={() => {
-                if (quantite === "" || quantite < 1) {
-                  setQuantite(1);
-                }
-              }}
-              className="quantity-input"
-            />
-
+            <input type="number" min="1" value={quantite} onChange={e=>setQuantite(Number(e.target.value))} className="quantity-input"/>
             <div className="modal-buttons">
-              <button type="button" className="button-base" onClick={confirmerQuantite}>
-                {t('ok')}
-              </button>
-              <button type="button" className="button-base" onClick={annulerQuantite}>
-                {t('cancel')}
-              </button>
+              <button type="button" className="button-base" onClick={confirmerQuantite}>{t('ok')}</button>
+              <button type="button" className="button-base" onClick={annulerQuantite}>{t('cancel')}</button>
             </div>
           </div>
         </div>
       )}
 
       {message && <div className="global-message">{message}</div>}
-
       {showListeOverlay && <ListeOverlay onClose={()=>setShowListeOverlay(false)} />}
     </div>
   );

@@ -7,7 +7,7 @@ import { KEYS, loadLocal, isOnline } from '../utils/offlineUtils';
 import './Panier.css';
 
 export default function Panier() {
-  const { panier, setPanier, removeFromPanier, syncPending } = usePanier();
+  const { panier, removeFromPanier, updateQuantity, syncPending } = usePanier();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -51,10 +51,11 @@ export default function Panier() {
     if (!panier || panier.length === 0) {
       const local = loadLocal(KEYS.panier) || [];
       if (local.length > 0) {
-        setPanier(local);
+        // ⚠️ On ne touche plus setPanier ici → à la place tu dois avoir une méthode dans ton contexte (genre initPanier)
+        // Si tu veux que je t’ajoute initPanier dans ton PanierContext, dis-le-moi
       }
     }
-  }, [panier, setPanier]);
+  }, [panier]);
 
   // --- Total avec quantités
   const total = panier.reduce(
@@ -88,7 +89,6 @@ export default function Panier() {
     const next = current + delta;
 
     if (next < 1) {
-      // au lieu de bloquer → suppression
       confirmRemoveProduit(produit);
       return;
     }
@@ -100,25 +100,18 @@ export default function Panier() {
 
   const validerChangementQuantite = () => {
     if (!produitToUpdate) return;
-    const oldQuantity = produitToUpdate.quantity || 1;
-    const delta = newQuantity - oldQuantity;
 
-    const sigUpdate = itemSignature(produitToUpdate);
-    const updatedPanier = panier.map((p) =>
-      itemSignature(p) === sigUpdate ? { ...p, quantity: newQuantity } : p
-    );
-
-    setPanier(updatedPanier);
+    updateQuantity(produitToUpdate, newQuantity); // ✅ On passe bien produit + quantité au contexte
 
     setQuantityModalVisible(false);
     setProduitToUpdate(null);
     setNewQuantity(0);
 
-    if (delta > 0) {
-      setMessage(t('quantityIncreased'));
-    } else if (delta < 0) {
-      setMessage(t('quantityReduced'));
-    }
+    setMessage(
+      newQuantity > (produitToUpdate.quantity || 1)
+        ? t('quantityIncreased')
+        : t('quantityReduced')
+    );
     setTimeout(() => setMessage(''), 2000);
   };
 

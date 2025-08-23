@@ -18,7 +18,7 @@ export default defineConfig({
     react({ jsxRuntime: 'automatic' }),
     VitePWA({
       registerType: 'autoUpdate',
-      devOptions: { enabled: true },
+      devOptions: { enabled: false }, // ⚠️ Désactive le SW en dev
       includeAssets: [
         'favicon.ico',
         'robots.txt',
@@ -26,7 +26,7 @@ export default defineConfig({
         'icons/icon-192x192.png',
         'icons/icon-512x512.png',
         'icons/logos-pwa.png',
-        ...produitImages, // ✅ Pré-cache toutes les images produits sans codes
+        ...produitImages, // Pré-cache toutes les images produits sans codes
       ],
       manifest: {
         name: 'SelfPay',
@@ -45,6 +45,7 @@ export default defineConfig({
       },
       workbox: {
         runtimeCaching: [
+          // Google Fonts
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
@@ -61,14 +62,14 @@ export default defineConfig({
               expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
             },
           },
+
+          // Firestore → toujours NetworkOnly
           {
             urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'firestore-data',
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 30 },
-            },
+            handler: 'NetworkOnly',
           },
+
+          // Firebase Storage
           {
             urlPattern: /^https:\/\/firebasestorage\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
@@ -77,6 +78,14 @@ export default defineConfig({
               expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
+
+          // Firebase Auth iframe → toujours NetworkOnly
+          {
+            urlPattern: /^https:\/\/selfpay-olivier\.firebaseapp\.com\/.*/i,
+            handler: 'NetworkOnly',
+          },
+
+          // Netlify & autres static assets
           {
             urlPattern: /^https:\/\/selfpay-pwa\.netlify\.app\/.*/i,
             handler: 'StaleWhileRevalidate',
