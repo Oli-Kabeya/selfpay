@@ -1,4 +1,4 @@
-// Scan.jsx (corrigé avec modal de saisie quantité)
+// Scan.jsx (corrigé avec fermeture caméra avant modal + fix quantite)
 import React, { useEffect, useState, useRef } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { useLocation } from 'react-router-dom';
@@ -8,11 +8,11 @@ import { usePanier } from '../context/PanierContext';
 import ListeOverlay from '../components/ListeOverlay';
 import SansCodesDropdown from '../components/SansCodesDropdown';
 import { fetchExactProduct } from '../utils/openFoodFacts';
-import { loadLocal, syncPendingData, isOnline as checkOnline } from '../utils/offlineUtils';
+import { syncPendingData, isOnline as checkOnline } from '../utils/offlineUtils';
 import './Scan.css';
 
 export default function Scan() {
-  const { addToPanier } = usePanier();
+  const { addToCart } = usePanier(); // ✅ renommé pour correspondre à PanierContext
   const { t } = useTranslation();
   const location = useLocation();
 
@@ -95,6 +95,7 @@ export default function Scan() {
 
   // --- Afficher modal de quantité pour un produit
   const demanderQuantite = (produit) => {
+    stopCamera(); // ✅ fermer caméra avant d'afficher le modal
     setProduitEnAttente(produit);
     setQuantite(1);
     setQuantityModalVisible(true);
@@ -102,25 +103,22 @@ export default function Scan() {
 
   const confirmerQuantite = async () => {
     if (produitEnAttente) {
-      await addToPanier({ ...produitEnAttente, quantity: quantite });
+      await addToCart({ ...produitEnAttente, quantite: quantite }); // ✅ corriger clé quantite
       setMessage(t('productAdded') || 'Produit ajouté');
       setTimeout(() => setMessage(''), 1500);
     }
     setQuantityModalVisible(false);
     setProduitEnAttente(null);
-    stopCamera();
   };
 
   const annulerQuantite = () => {
     setQuantityModalVisible(false);
     setProduitEnAttente(null);
-    stopCamera();
   };
 
   // --- Ajouter produit scanné
   const ajouterProduit = async (code) => {
     if (!code) return;
-
     const produitExact = await fetchExactProduct(code);
 
     if (produitExact) {
@@ -236,51 +234,44 @@ export default function Scan() {
 
       {/* --- Modal quantité --- */}
       {quantityModalVisible && (
-  <div className="modal-overlay">
-    <div className="modal-content">
-      <h2>{t('enterQuantity')}</h2>
-     <input
-       type="number"
-        min="1"
-        value={quantite}
-        onChange={(e) => {
-        let val = e.target.value;
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>{t('enterQuantity')}</h2>
+            <input
+              type="number"
+              min="1"
+              value={quantite}
+              onChange={(e) => {
+                let val = e.target.value;
+                if (val === "") {
+                  setQuantite("");
+                  return;
+                }
+                let num = Number(val);
+                if (num < 1) {
+                  setQuantite("");
+                } else {
+                  setQuantite(num);
+                }
+              }}
+              className="quantity-input"
+            />
 
-    // Si le champ est vide → garder vide
-    if (val === "") {
-      setQuantite("");
-      return;
-    }
-
-    // Convertir en nombre pour supprimer les zéros initiaux
-    let num = Number(val);
-
-    // Bloquer en dessous de 1 uniquement au moment de la saisie
-    if (num < 1) {
-      setQuantite("");
-    } else {
-      setQuantite(num);
-    }
-  }}
-  className="quantity-input"
-/>
-
-      <div className="modal-buttons">
-        <button
-          className="button-base"
-          onClick={confirmerQuantite}
-          disabled={!quantite || quantite < 1}
-        >
-          {t('ok')}
-        </button>
-        <button className="button-base" onClick={annulerQuantite}>
-          {t('cancel')}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
+            <div className="modal-buttons">
+              <button
+                className="button-base"
+                onClick={confirmerQuantite}
+                disabled={!quantite || quantite < 1}
+              >
+                {t('ok')}
+              </button>
+              <button className="button-base" onClick={annulerQuantite}>
+                {t('cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {message && (
         <div className="global-message">{message}</div>

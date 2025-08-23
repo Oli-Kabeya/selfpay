@@ -40,9 +40,7 @@ export default function Auth() {
     e.preventDefault();
     setError('');
 
-    // Nettoyer le numéro (supprimer tout sauf chiffres)
     const cleanNumber = localNumber.replace(/[^0-9]/g, '');
-    // Validation RDC : 10 chiffres, doit commencer par 0
     if (!/^0\d{9}$/.test(cleanNumber)) {
       setError(t('invalidPhone') || 'Numéro incorrect. Exemple : 0812345678');
       return;
@@ -56,7 +54,7 @@ export default function Auth() {
     try {
       setLoading(true);
       setupRecaptcha();
-      const formattedNumber = '+243' + cleanNumber.slice(1); // Retirer le 0
+      const formattedNumber = '+243' + cleanNumber.slice(1);
       const result = await signInWithPhoneNumber(auth, formattedNumber, window.recaptchaVerifier);
       setConfirmationResult(result);
     } catch (err) {
@@ -98,7 +96,7 @@ export default function Auth() {
       )}
 
       <form onSubmit={confirmationResult ? handleVerifyOtp : handleSendCode} className="auth-form">
-        <div className="auth-phone-input">
+        <div className="auth-phone-input neumorphic">
           <span className="auth-country-code">+243&nbsp;</span>
           <input
             type="tel"
@@ -116,7 +114,7 @@ export default function Auth() {
             placeholder={t('enterOtp') || 'Code reçu par SMS'}
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
-            className="auth-otp-input"
+            className="auth-otp-input neumorphic"
             disabled={loading}
             autoFocus
           />
@@ -126,7 +124,7 @@ export default function Auth() {
 
         <button
           type="submit"
-          className={`auth-button ${loading || !isOnline ? 'disabled' : ''}`}
+          className={`auth-button neumorphic ${loading || !isOnline ? 'disabled' : ''}`}
           disabled={loading || !isOnline}
         >
           {loading ? (

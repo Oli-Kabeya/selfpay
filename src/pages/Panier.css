@@ -236,3 +236,67 @@
   user-select: none;
   pointer-events: none;
 }
+
+.quantity-control {
+  display: flex;
+  flex-direction: column; /* alignement vertical */
+  align-items: center;
+  justify-content: center;
+  background: var(--control-bg);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.quantity-control button {
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  font-weight: bold;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.quantity-control button:hover {
+  background: var(--btn-hover-bg);
+  transform: scale(1.05);
+}
+
+.quantity-control span{
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  background: var(--number-bg);
+}
+
+/* Mode clair */
+:root {
+  --control-bg: #f0f0f0;
+  --btn-bg: #e0e0e0;
+  --btn-text: #222;
+  --btn-hover-bg: #d0d0d0;
+  --number-bg: #fff;
+  --text-primary: #111;
+}
+
+/* Mode sombre */
+[data-theme="dark"] {
+  --control-bg: #2a2a2a;
+  --btn-bg: #3a3a3a;
+  --btn-text: #fff;
+  --btn-hover-bg: #4a4a4a;
+  --number-bg: #1e1e1e;
+  --text-primary: #f5f5f5;
+}

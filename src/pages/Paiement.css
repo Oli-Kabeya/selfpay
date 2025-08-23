@@ -1,0 +1,138 @@
+/* Paiement.css */
+
+/* --- Container principal --- */
+.paiement-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+  padding-bottom: 5rem; /* espace pour FooterNav */
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* --- Card principale --- */
+.paiement-card {
+  width: 100%;
+  max-width: 400px;
+  background-color: var(--card-bg, #fff);
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+/* Thème sombre */
+.dark .paiement-card {
+  background-color: #1E1E1E;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+}
+
+/* --- Titres et textes --- */
+.paiement-card h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: var(--text-main, #222);
+}
+
+.dark .paiement-card h2 {
+  color: #fff;
+}
+
+.paiement-card p {
+  text-align: center;
+  font-size: 1rem;
+  color: var(--text-secondary, #555);
+  margin-bottom: 1.5rem;
+}
+
+.dark .paiement-card p {
+  color: #ccc;
+}
+
+.paiement-card p span {
+  font-weight: 600;
+  color: var(--text-highlight, #FF5E3A);
+}
+
+/* --- Label --- */
+.paiement-card label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--text-secondary, #555);
+}
+
+.dark .paiement-card label {
+  color: #ccc;
+}
+
+/* --- Selecteur mode de paiement --- */
+.paiement-card select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid #ccc;
+  background-color: #f5f5f5;
+  color: #222;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.dark .paiement-card select {
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  color: #fff;
+}
+
+/* --- Bouton paiement --- */
+.paiement-card .pay-btn {
+  width: 100%;
+  padding: 0.75rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  border-radius: 1rem;
+  border: none;
+  background: linear-gradient(90deg, #FF5E3A 0%, #FFBA00 100%);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 15px rgba(255, 94, 58, 0.3);
+  transition: transform 0.2s, opacity 0.2s, box-shadow 0.2s;
+}
+
+.paiement-card .pay-btn:hover {
+  opacity: 0.95;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 94, 58, 0.4);
+}
+
+.paiement-card .pay-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(255, 94, 58, 0.3);
+}
+
+/* --- Message erreur / info --- */
+.paiement-card .message {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #e53e3e;
+}
+
+/* --- FooterNav --- */
+footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: var(--footer-bg, #fff);
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+}
+
+.dark footer {
+  background-color: #121212;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.4);
+}

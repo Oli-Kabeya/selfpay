@@ -1,4 +1,3 @@
-// Panier.jsx (corrigé et stable, gestion quantités + tri décroissant par ajoute_le + modal réduction)
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePanier } from '../context/PanierContext';
@@ -15,12 +14,21 @@ export default function Panier() {
   const [showListeOverlay, setShowListeOverlay] = useState(false);
   const [message, setMessage] = useState('');
   const [isOnlineState, setIsOnlineState] = useState(isOnline());
+
+  // Modal suppression
   const [modalVisible, setModalVisible] = useState(false);
   const [produitToDelete, setProduitToDelete] = useState(null);
-  const [reduceModalVisible, setReduceModalVisible] = useState(false);
-  const [produitToReduce, setProduitToReduce] = useState(null);
+
+  // Modal changement quantité
+  const [quantityModalVisible, setQuantityModalVisible] = useState(false);
+  const [produitToUpdate, setProduitToUpdate] = useState(null);
+  const [newQuantity, setNewQuantity] = useState(0);
 
   const swipeStartX = useRef(null);
+
+  // ----- Helpers
+  const itemSignature = (p) =>
+    `${p?.code ?? ''}|${p?.idSansCode ?? ''}|${p?.ajoute_le ?? ''}`;
 
   // --- Gestion connexion online/offline
   useEffect(() => {
@@ -54,7 +62,7 @@ export default function Panier() {
     0
   );
 
-  // --- Suppression produit
+  // --- Suppression produit (modal)
   const confirmRemoveProduit = (produit) => {
     setProduitToDelete(produit);
     setModalVisible(true);
@@ -65,7 +73,7 @@ export default function Panier() {
     await removeFromPanier(produitToDelete);
     setModalVisible(false);
     setProduitToDelete(null);
-    setMessage(t('productRemoved') || 'Produit supprimé');
+    setMessage(t('productRemoved'));
     setTimeout(() => setMessage(''), 2000);
   };
 
@@ -74,36 +82,56 @@ export default function Panier() {
     setProduitToDelete(null);
   };
 
-  // --- Réduction de quantité
-  const confirmReduceProduit = (produit) => {
-    setProduitToReduce(produit);
-    setReduceModalVisible(true);
+  // --- Modification quantité (+ / -) → ouvre modal delta
+  const changeQuantity = (produit, delta) => {
+    const current = produit.quantity || 1;
+    const next = current + delta;
+
+    if (next < 1) {
+      // au lieu de bloquer → suppression
+      confirmRemoveProduit(produit);
+      return;
+    }
+
+    setProduitToUpdate(produit);
+    setNewQuantity(next);
+    setQuantityModalVisible(true);
   };
 
-  const validerReduction = async () => {
-    if (!produitToReduce) return;
+  const validerChangementQuantite = () => {
+    if (!produitToUpdate) return;
+    const oldQuantity = produitToUpdate.quantity || 1;
+    const delta = newQuantity - oldQuantity;
+
+    const sigUpdate = itemSignature(produitToUpdate);
     const updatedPanier = panier.map((p) =>
-      p.code === produitToReduce.code
-        ? { ...p, quantity: (p.quantity || 1) - 1 }
-        : p
-    ).filter(p => (p.quantity || 1) > 0);
+      itemSignature(p) === sigUpdate ? { ...p, quantity: newQuantity } : p
+    );
 
     setPanier(updatedPanier);
-    setReduceModalVisible(false);
-    setProduitToReduce(null);
-    setMessage(t('quantityReduced') || 'Quantité réduite');
+
+    setQuantityModalVisible(false);
+    setProduitToUpdate(null);
+    setNewQuantity(0);
+
+    if (delta > 0) {
+      setMessage(t('quantityIncreased'));
+    } else if (delta < 0) {
+      setMessage(t('quantityReduced'));
+    }
     setTimeout(() => setMessage(''), 2000);
   };
 
-  const annulerReduction = () => {
-    setReduceModalVisible(false);
-    setProduitToReduce(null);
+  const annulerChangementQuantite = () => {
+    setQuantityModalVisible(false);
+    setProduitToUpdate(null);
+    setNewQuantity(0);
   };
 
   // --- Swipe pour overlay liste
   useEffect(() => {
-    const handleTouchStart = e => (swipeStartX.current = e.touches[0].clientX);
-    const handleTouchEnd = e => {
+    const handleTouchStart = (e) => (swipeStartX.current = e.touches[0].clientX);
+    const handleTouchEnd = (e) => {
       const deltaX = e.changedTouches[0].clientX - swipeStartX.current;
       if (deltaX < -50) setShowListeOverlay(true);
     };
@@ -121,7 +149,7 @@ export default function Panier() {
     return [...panier].sort((a, b) => {
       const dateA = a.ajoute_le ? new Date(a.ajoute_le).getTime() : 0;
       const dateB = b.ajoute_le ? new Date(b.ajoute_le).getTime() : 0;
-      return dateB - dateA; // décroissant
+      return dateB - dateA;
     });
   }, [panier]);
 
@@ -133,46 +161,56 @@ export default function Panier() {
         {t('total')}: {total.toFixed(2)} FC
       </h1>
 
-      <div className={`panier-content scrollable-content${(modalVisible || reduceModalVisible) ? ' modal-blur' : ''}`}>
+      <div
+        className={`panier-content scrollable-content${
+          modalVisible || quantityModalVisible ? ' modal-blur' : ''
+        }`}
+      >
         {!isOnlineState && (
-          <p className="offline-warning">
-            {t('offlineCartNotice') || 'Mode hors-ligne. Données locales utilisées.'}
-          </p>
+          <p className="offline-warning">{t('offlineCartNotice')}</p>
         )}
 
         {(!sortedPanier || sortedPanier.length === 0) ? (
-          <p className="empty-text">
-            {t('cartEmptyMessage') || 'Votre panier est vide.'}
-          </p>
+          <p className="empty-text">{t('cartEmptyMessage')}</p>
         ) : (
           <ul className="product-list">
-            {sortedPanier.map((item, idx) => (
-              <li key={`${item.code || item.idSansCode || idx}`} className="product-item">
-                <div className="item-name">
-                  {item.nom}
-                  {item.quantity && item.quantity > 1 && (
-                    <span className="item-quantity"> x{item.quantity}</span>
-                  )}
-                </div>
-                <div className="item-price">
-                  {(item.prix * (item.quantity || 1)).toFixed(2)} FC
-                </div>
-                <button
-                  className="reduce-btn"
-                  aria-label={t('reduceQuantity')}
-                  onClick={() => confirmReduceProduit(item)}
-                >
-                  −
-                </button>
-                <button
-                  className="remove-btn"
-                  aria-label={t('removeProduct')}
-                  onClick={() => confirmRemoveProduit(item)}
-                >
-                  ✕
-                </button>
-              </li>
-            ))}
+            {sortedPanier.map((item, idx) => {
+              const key = itemSignature(item) || idx;
+              const qte = item.quantity || 1;
+              return (
+                <li key={key} className="product-item">
+                  <div className="item-name">{item.nom}</div>
+
+                  <div className="quantity-control">
+                    <button
+                      onClick={() => changeQuantity(item, -1)}
+                      aria-label={t('decreaseQuantity')}
+                    >
+                      −
+                    </button>
+                    <span>{qte}</span>
+                    <button
+                      onClick={() => changeQuantity(item, +1)}
+                      aria-label={t('increaseQuantity')}
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <div className="item-price">
+                    {(item.prix * qte).toFixed(2)} FC
+                  </div>
+
+                  <button
+                    className="remove-btn"
+                    aria-label={t('removeProduct')}
+                    onClick={() => confirmRemoveProduit(item)}
+                  >
+                    ✕
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -181,36 +219,48 @@ export default function Panier() {
       {modalVisible && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <p>
-              {t('removeConfirmMessage') ||
-                'Vous devez également retirer ce produit de votre panier physique. Confirmez la suppression ?'}
-            </p>
+            <p>{t('removeConfirmMessage', { product: produitToDelete?.nom })}</p>
             <div className="modal-buttons">
               <button className="button-base" onClick={validerSuppression}>
-                {t('ok') || 'OK'}
+                {t('ok')}
               </button>
               <button className="button-base" onClick={annulerSuppression}>
-                {t('cancel') || 'Annuler'}
+                {t('cancel')}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal réduction quantité */}
-      {reduceModalVisible && (
+      {/* Modal changement de quantité */}
+      {quantityModalVisible && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <p>
-              {t('reduceConfirmMessage', { produit: produitToReduce?.nom }) ||
-                `Veuillez retirer 1 ${produitToReduce?.nom} de votre panier physique. Confirmez ?`}
-            </p>
+            {produitToUpdate && (
+              <p>
+                {newQuantity > (produitToUpdate.quantity || 1)
+                  ? t('increaseConfirmMessage', {
+                      count: newQuantity,
+                      product: produitToUpdate.nom,
+                    })
+                  : t('reduceConfirmMessages', {
+                      count: newQuantity,
+                      product: produitToUpdate.nom,
+                    })}
+              </p>
+            )}
             <div className="modal-buttons">
-              <button className="button-base" onClick={validerReduction}>
-                {t('ok') || 'OK'}
+              <button
+                className="button-base"
+                onClick={validerChangementQuantite}
+              >
+                {t('ok')}
               </button>
-              <button className="button-base" onClick={annulerReduction}>
-                {t('cancel') || 'Annuler'}
+              <button
+                className="button-base"
+                onClick={annulerChangementQuantite}
+              >
+                {t('cancel')}
               </button>
             </div>
           </div>
@@ -223,7 +273,7 @@ export default function Panier() {
             className="button-base validate-btn"
             onClick={() => navigate('/paiement')}
           >
-            {t('validatePurchase') || 'Valider l’achat'}
+            {t('validatePurchase')}
           </button>
         )}
       </div>

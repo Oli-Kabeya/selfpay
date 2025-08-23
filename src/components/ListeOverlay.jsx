@@ -1,4 +1,3 @@
-// ListeOverlay.jsx
 import React, { useEffect, useRef, useState } from 'react';
 import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -16,7 +15,6 @@ export default function ListeOverlay({ onClose }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // --- Charger localement et Firestore en arrière-plan
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
@@ -33,9 +31,12 @@ export default function ListeOverlay({ onClose }) {
         const docRef = doc(db, 'listes_courses', user.uid);
         const docSnap = await getDoc(docRef);
         const firestoreItems = docSnap.exists() ? docSnap.data().items || [] : [];
-        // Fusion avec local
-        const merged = [...firestoreItems, ...localData];
-        const unique = Array.from(new Map(merged.map(p => [p.id || JSON.stringify(p), p])).values());
+
+        // Fusion : priorité aux données locales
+        const map = new Map();
+        [...firestoreItems, ...localData].forEach(p => map.set(p.id || JSON.stringify(p), p));
+        const unique = Array.from(map.values());
+
         setItems(unique);
         saveLocal(KEYS.liste, unique);
         await setDoc(docRef, { items: unique }, { merge: true });
@@ -46,18 +47,16 @@ export default function ListeOverlay({ onClose }) {
 
     syncFirestore();
 
-    // ⚡ Écoute les changements locaux pour mise à jour en temps réel
+    // ⚡ Écoute stockage local pour mise à jour live
     const handleStorageChange = (e) => {
       if (e.key === KEYS.liste) {
-        const updated = loadLocal(KEYS.liste) || [];
-        setItems(updated);
+        setItems(loadLocal(KEYS.liste) || []);
       }
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // --- Toggle checked
   const toggleChecked = async (id) => {
     const updatedItems = items.map(item =>
       item.id === id ? { ...item, checked: !item.checked } : item
@@ -77,7 +76,6 @@ export default function ListeOverlay({ onClose }) {
     }
   };
 
-  // --- Swipe pour fermer
   const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
   const handleTouchEnd = (e) => {
     const deltaX = e.changedTouches[0].clientX - touchStartX.current;

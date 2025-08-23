@@ -5,11 +5,9 @@ const SplashScreen = () => {
   const [theme, setTheme] = useState('light');
 
   useEffect(() => {
-    // Récupère le thème actuel dans le html[data-theme]
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
     setTheme(currentTheme);
 
-    // Event listener si tu changes le thème ailleurs dynamiquement
     const observer = new MutationObserver(() => {
       const updatedTheme = document.documentElement.getAttribute('data-theme') || 'light';
       setTheme(updatedTheme);
@@ -28,12 +26,9 @@ const SplashScreen = () => {
         className="logo-animated"
       />
       <p className="slogan-text">scannez. payez. partez.</p>
-
       <div className="text-center mt-4">
         <p className="text-xs tracking-widest from-text">from</p>
-        <p className="scanera-texts">
-          Scanera
-        </p>
+        <p className="scanera-texts">Scanera</p>
       </div>
     </div>
   );

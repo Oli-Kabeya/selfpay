@@ -1,5 +1,3 @@
-/* Auth.css */
-
 body {
   margin: 0;
   padding: 0;
@@ -9,12 +7,14 @@ body {
 /* Container principal */
 .auth-container {
   min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   padding: 1rem;
   transition: background-color 0.3s, color 0.3s;
+  overflow: hidden; /* Empêche le scroll quand focus */
 }
 
 /* Titre */
@@ -41,19 +41,32 @@ body {
   gap: 1rem;
 }
 
+/* Neumorphisme commun */
+.neumorphic {
+  border-radius: 1rem;
+  background: var(--input-bg);
+  box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light);
+  transition: all 0.2s ease-in-out;
+}
+
+.neumorphic:focus-within {
+  box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+}
+
 /* Champ téléphone */
 .auth-phone-input {
   position: relative;
+  padding: 0.25rem;
 }
 
 .auth-phone-input input {
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 4rem; /* ← augmente ici (4rem) pour +243 + espace */
-  border-radius: 0.75rem;
-  border: 1px solid var(--border-color);
-  background-color: var(--input-bg);
+  padding: 0.75rem 1rem 0.75rem 4rem;
+  border: none;
+  background: transparent;
   color: var(--text-color);
   font-size: 16px;
+  outline: none;
 }
 
 .auth-country-code {
@@ -66,21 +79,22 @@ body {
   pointer-events: none;
 }
 
-
 /* OTP */
 .auth-otp-input {
   width: 100%;
   padding: 0.75rem 1rem;
-  border-radius: 0.75rem;
-  border: 1px solid var(--border-color);
-  background-color: var(--input-bg);
+  border: none;
+  background: transparent;
   color: var(--text-color);
+  font-size: 16px;
+  outline: none;
 }
 
 /* Erreur */
 .auth-error {
   color: red;
   font-size: 0.875rem;
+  margin: 0;
 }
 
 /* Bouton */
@@ -88,16 +102,19 @@ body {
   width: 100%;
   padding: 0.75rem;
   border: none;
-  border-radius: 0.75rem;
   font-weight: 600;
   color: white;
   background: linear-gradient(to right, #FF5E3A, #FFBA00);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s ease-in-out;
 }
 
-.auth-button:hover {
+.auth-button.neumorphic {
+  /*box-shadow: 8px 8px 16px rgba(0,0,0,0.2), -8px -8px 16px rgba(255,255,255,0.7);*/
+  border-radius: 1rem;
+}
+
+.auth-button:hover:not(.disabled) {
   opacity: 0.9;
 }
 
@@ -129,13 +146,15 @@ body {
   }
 }
 
-/* THEME : clair / sombre */
+/* THEME clair / sombre */
 body.light {
   --bg-color: #ffffff;
   --text-color: #1a1a1a;
   --border-color: #cccccc;
   --input-bg: #f0f0f0;
   --placeholder-color: #666666;
+  --shadow-dark: rgba(0,0,0,0.15);
+  --shadow-light: rgba(255,255,255,0.7);
   background-color: var(--bg-color);
   color: var(--text-color);
 }
@@ -146,18 +165,8 @@ body.dark {
   --border-color: #444444;
   --input-bg: #1e1e1e;
   --placeholder-color: #aaaaaa;
+  --shadow-dark: rgba(0,0,0,0.5);
+  --shadow-light: rgba(255,255,255,0.1);
   background-color: var(--bg-color);
   color: var(--text-color);
 }
-
-.auth-phone-input input,
-.auth-otp-input {
-  font-size: 16px; /* MINIMUM pour éviter zoom mobile */
-}
-
-.auth-container {
-  min-height: 100vh;
-  height: 100vh; /* force hauteur fixe */
-  overflow: hidden; /* évite scroll au focus */
-}
-

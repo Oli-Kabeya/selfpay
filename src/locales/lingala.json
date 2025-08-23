@@ -93,7 +93,6 @@
     "manualProduct": "Biloko ya kokoma na mikanda",
   "selectProduct": "-- Pona eloko --",
   "selectSansCodeProduct": "Sangá eloko oyo ezangi kodi",
-  "removeConfirmMessage": "Soki okotaki, liboso oyebisa ete okozongela mpe eloko oyo na panier na yo ya solo. Okoki kosala yango?",
   "confirmDeleteAll": "Longola tout na liste ?",
   "check": "Ponga",
   "uncheck": "Kolongola pongi",
@@ -109,5 +108,19 @@
   "manualRemovePrompt": "Koma code barres yomoko:",
    "removeProduct": "Longola yango",
   "removeSansCodeConfirm": "Bimisa eloko o longoli na chariot na yo. O ndimi ko longola yango?",
-  "ok": "OK"
+  "ok": "OK",
+  "quantityChangeConfirmTitle":"Kokokisa kobongola",
+    "quantityChangeConfirmMessage":"Svp %{action} %{count} biloko ya %{product} na panier na yo ya solo.",
+    "quantityActionAdd":"bakisa",
+  "emptyCart": "Paniɛr na yo ezali pɛto.",
+  "offlinePaymentQueued": "Kofuta esalemi na ekolo, ekosala synchronisation soki na ligne.",
+    "quantityActionRemove":"longola",
+     "removeConfirmMessage": "Osengeli mpe kolongola {{product}} na panier ya nzoto. Olingi kolongola yango?",
+  "productRemoved": "Eloko elongolami",
+  "decreaseQuantity": "Bongisa kokitisa motango",
+  "increaseQuantity": "Bongisa kobakisa motango",
+  "quantityIncreased": "Motango ebakisami",
+  "quantityReduced": "Motango ekitisami",
+  "increaseConfirmMessage": "Bakisa {{count}} {{product}} na panier ya nzoto. Ondimi?",
+  "reduceConfirmMessages": "Longola {{product}} mpo na kokoma na {{count}}. Ondimi?"
 }

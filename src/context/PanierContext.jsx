@@ -3,8 +3,6 @@ import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import {
   KEYS,
-  loadLocal,
-  saveLocal,
   addPending,
   getPendingPanier,
   clearPendingPanier,
@@ -18,74 +16,90 @@ export function PanierProvider({ children }) {
   const [panier, setPanier] = useState([]);
   const syncingRef = useRef(false);
 
-  // --- Initialisation : charger local + fusion Firestore/pending si connecté
+  const getStorageKey = () => `panier_${auth.currentUser?.uid || 'guest'}`;
+  const loadPanierLocal = () => JSON.parse(localStorage.getItem(getStorageKey()) || '[]');
+  const savePanierLocal = (data) => localStorage.setItem(getStorageKey(), JSON.stringify(data));
+
   useEffect(() => {
-    const initPanier = async () => {
-      const local = loadLocal(KEYS.panier) || [];
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      const local = loadPanierLocal();
       setPanier(local);
 
-      if (auth.currentUser && isOnline()) {
+      if (user && isOnline()) {
         try {
-          const ref = doc(db, 'paniers', auth.currentUser.uid);
+          const ref = doc(db, 'paniers', user.uid);
           const snap = await getDoc(ref);
           const firestoreArticles = snap.exists() ? snap.data().articles || [] : [];
           const pending = getPendingPanier();
 
-          // ✅ Fusion avec ajout de ajoute_le si manquant
-          let merged = [
+          const merged = [
             ...firestoreArticles.map(p => ({ ...p, ajoute_le: p.ajoute_le || new Date().toISOString() })),
             ...pending.map(p => ({ ...(p.product || p), ajoute_le: (p.product?.ajoute_le || p.ajoute_le) || new Date().toISOString() })),
             ...local.map(p => ({ ...p, ajoute_le: p.ajoute_le || new Date().toISOString() }))
           ];
 
-          // Déduplication
           const unique = Array.from(
             new Map(merged.map(p => [p.idSansCode || p.code || JSON.stringify(p), p])).values()
           );
 
           setPanier(unique);
-          saveLocal(KEYS.panier, unique);
+          savePanierLocal(unique);
           clearPendingPanier();
           await setDoc(ref, { articles: unique, updatedAt: new Date() }, { merge: true });
         } catch (err) {
           console.error("Erreur init panier:", err);
         }
       }
-    };
+    });
 
-    initPanier();
+    return () => unsubscribe();
   }, []);
 
-  // --- Sauvegarde locale automatique
-  useEffect(() => {
-    saveLocal(KEYS.panier, panier);
-  }, [panier]);
+  useEffect(() => { savePanierLocal(panier); }, [panier]);
 
-  // --- Ajouter un produit
   const addToPanier = async (produit) => {
-    const produitWithDate = { ...produit, ajoute_le: produit.ajoute_le || new Date().toISOString() };
+    const idProduit = produit.idSansCode || produit.code;
+    setPanier(prev => {
+      const existe = prev.find(p => (p.idSansCode || p.code) === idProduit);
+      let updated = existe
+        ? prev.map(p => (p.idSansCode || p.code) === idProduit ? { ...p, quantite: (p.quantite || 1) + (produit.quantite || 1) } : p)
+        : [...prev, { ...produit, quantite: produit.quantite || 1, ajoute_le: produit.ajoute_le || new Date().toISOString() }];
 
-    const updated = [...panier, produitWithDate];
-    setPanier(updated);
-    saveLocal(KEYS.panier, updated);
+      savePanierLocal(updated);
 
-    if (auth.currentUser && isOnline()) {
-      try {
-        const ref = doc(db, 'paniers', auth.currentUser.uid);
-        const snap = await getDoc(ref);
-        const firestoreArticles = snap.exists() ? snap.data().articles || [] : [];
-        await setDoc(ref, { articles: [...firestoreArticles, produitWithDate], updatedAt: new Date() }, { merge: true });
-      } catch (err) {
-        console.error("Erreur ajout Firestore, fallback pending:", err);
-        addPending(KEYS.pending.panier, { action: 'add', product: produitWithDate });
+      if (auth.currentUser && isOnline()) {
+        syncWithFirestore(updated).catch(err => {
+          console.error("Erreur sync Firestore:", err);
+          addPending(KEYS.pending.panier, { action: 'add', product: produit });
+        });
+      } else {
+        addPending(KEYS.pending.panier, { action: 'add', product: produit });
       }
-    } else {
-      addPending(KEYS.pending.panier, { action: 'add', product: produitWithDate });
-    }
+
+      return updated;
+    });
   };
 
-  // --- Supprimer un produit
-  const removeFromPanier = async (produit) => {
+  const updateQuantity = (produit, nouvelleQuantite) => {
+    const idProduit = produit.idSansCode || produit.code;
+    setPanier(prev => {
+      let updated = nouvelleQuantite <= 0
+        ? prev.filter(p => (p.idSansCode || p.code) !== idProduit)
+        : prev.map(p => (p.idSansCode || p.code) === idProduit ? { ...p, quantite: nouvelleQuantite } : p);
+
+      savePanierLocal(updated);
+
+      if (auth.currentUser && isOnline()) {
+        syncWithFirestore(updated).catch(err => addPending(KEYS.pending.panier, { action: 'update', product: { ...produit, quantite: nouvelleQuantite } }));
+      } else {
+        addPending(KEYS.pending.panier, { action: 'update', product: { ...produit, quantite: nouvelleQuantite } });
+      }
+
+      return updated;
+    });
+  };
+
+  const removeFromPanier = (produit) => {
     const updated = panier.filter(p => {
       const idProduit = produit.idSansCode || produit.code;
       const idCourant = p.idSansCode || p.code;
@@ -93,22 +107,21 @@ export function PanierProvider({ children }) {
     });
 
     setPanier(updated);
-    saveLocal(KEYS.panier, updated);
+    savePanierLocal(updated);
 
     if (auth.currentUser && isOnline()) {
-      try {
-        const ref = doc(db, 'paniers', auth.currentUser.uid);
-        await setDoc(ref, { articles: updated, updatedAt: new Date() }, { merge: true });
-      } catch (err) {
-        console.error("Erreur suppression Firestore, fallback pending:", err);
-        addPending(KEYS.pending.panier, { action: 'remove', code: produit.code, idSansCode: produit.idSansCode });
-      }
+      syncWithFirestore(updated).catch(err => addPending(KEYS.pending.panier, { action: 'remove', code: produit.code, idSansCode: produit.idSansCode }));
     } else {
       addPending(KEYS.pending.panier, { action: 'remove', code: produit.code, idSansCode: produit.idSansCode });
     }
   };
 
-  // --- Synchronisation des pending
+  const syncWithFirestore = async (updatedPanier) => {
+    if (!auth.currentUser) return;
+    const ref = doc(db, 'paniers', auth.currentUser.uid);
+    await setDoc(ref, { articles: updatedPanier, updatedAt: new Date() }, { merge: true });
+  };
+
   const syncPending = async () => {
     if (syncingRef.current || !auth.currentUser || !isOnline()) return;
     syncingRef.current = true;
@@ -123,26 +136,30 @@ export function PanierProvider({ children }) {
 
       for (const action of pending) {
         if (action.action === 'add' && action.product) {
-          // Ajoute ajoute_le si manquant
-          const prod = { ...action.product, ajoute_le: action.product.ajoute_le || new Date().toISOString() };
-          firestoreArticles.push(prod);
+          const idProduit = action.product.idSansCode || action.product.code;
+          const existe = firestoreArticles.find(p => (p.idSansCode || p.code) === idProduit);
+          if (existe) existe.quantite += action.product.quantite || 1;
+          else firestoreArticles.push({ ...action.product, quantite: action.product.quantite || 1, ajoute_le: action.product.ajoute_le || new Date().toISOString() });
+        }
+        if (action.action === 'update' && action.product) {
+          firestoreArticles = firestoreArticles.map(p =>
+            (p.idSansCode || p.code) === (action.product.idSansCode || action.product.code)
+              ? { ...p, quantite: action.product.quantite }
+              : p
+          );
         }
         if (action.action === 'remove') {
           firestoreArticles = firestoreArticles.filter(p => {
             const idAction = action.idSansCode || action.code;
-            const idCourant = p.idSansCode || p.code;
-            return idAction !== idCourant;
+            return (p.idSansCode || p.code) !== idAction;
           });
         }
       }
 
-      const unique = Array.from(
-        new Map(firestoreArticles.map(p => [p.idSansCode || p.code || JSON.stringify(p), p])).values()
-      );
-
+      const unique = Array.from(new Map(firestoreArticles.map(p => [p.idSansCode || p.code || JSON.stringify(p), p])).values());
       setPanier(unique);
-      saveLocal(KEYS.panier, unique);
-      await setDoc(ref, { articles: unique, updatedAt: new Date() }, { merge: true });
+      savePanierLocal(unique);
+      await syncWithFirestore(unique);
       clearPendingPanier();
     } catch (err) {
       console.error("Erreur sync panier:", err);
@@ -151,7 +168,6 @@ export function PanierProvider({ children }) {
     }
   };
 
-  // --- Ecoute retour en ligne
   useEffect(() => {
     const handleOnline = () => syncPending();
     window.addEventListener("online", handleOnline);
@@ -159,7 +175,7 @@ export function PanierProvider({ children }) {
   }, []);
 
   return (
-    <PanierContext.Provider value={{ panier, addToPanier, removeFromPanier, syncPending }}>
+    <PanierContext.Provider value={{ panier, addToPanier, updateQuantity, removeFromPanier, syncPending }}>
       {children}
     </PanierContext.Provider>
   );

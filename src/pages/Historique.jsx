@@ -5,7 +5,7 @@ import { auth, db } from '../firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useTranslation } from 'react-i18next';
-import { loadLocal, saveLocal, isOnline, KEYS, getPendingPanier } from '../utils/offlineUtils';
+import { loadLocal, saveLocal, isOnline, KEYS } from '../utils/offlineUtils';
 import './Historique.css';
 
 export default function Historique() {

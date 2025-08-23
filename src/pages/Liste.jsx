@@ -30,8 +30,10 @@ export default function Liste() {
 
     // ⚡ Affiche d'abord la version locale
     const localItems = loadLocal(KEYS.liste) || [];
+    // Tri local par timestamp décroissant
+    localItems.sort((a,b) => new Date(b.ajoute_le) - new Date(a.ajoute_le));
     setItems(localItems);
-    setLoading(false); // ← UI débloquée immédiatement
+    setLoading(false);
 
     // 🔄 Ensuite synchro Firestore si online
     const syncFirestore = async () => {
@@ -42,9 +44,12 @@ export default function Liste() {
         const firestoreItems = snap.exists() ? snap.data().items || [] : [];
         const pending = loadLocal(KEYS.pending.liste) || [];
 
-        // Fusion + déduplication
+        // Fusion + déduplication (priorité aux données locales)
         const merged = [...firestoreItems, ...pending, ...localItems];
         const unique = Array.from(new Map(merged.map(p => [p.id || JSON.stringify(p), p])).values());
+
+        // Tri par ajoute_le décroissant
+        unique.sort((a,b) => new Date(b.ajoute_le) - new Date(a.ajoute_le));
 
         setItems(unique);
         saveLocal(KEYS.liste, unique);
@@ -62,6 +67,8 @@ export default function Liste() {
   }, [navigate]);
 
   const updateList = async (newItems) => {
+    // Tri par timestamp décroissant
+    newItems.sort((a,b) => new Date(b.ajoute_le) - new Date(a.ajoute_le));
     setItems(newItems);
     saveLocal(KEYS.liste, newItems);
 
