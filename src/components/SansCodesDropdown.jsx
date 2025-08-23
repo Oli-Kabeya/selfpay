@@ -1,10 +1,9 @@
-// SansCodesDropdown.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { fetchProductsFromAPI } from "../utils/openFoodFacts";
 import "./SansCodesDropdown.css";
 
-export default function SansCodesDropdown({ onAdd, onClose }) {
+export default function SansCodesDropdown({ onAdd, onClose, panier }) {
   const { t } = useTranslation();
   const [filteredProduits, setFilteredProduits] = useState([]);
   const [selectedProduit, setSelectedProduit] = useState(null);
@@ -51,7 +50,20 @@ export default function SansCodesDropdown({ onAdd, onClose }) {
 
   const handleAddClick = () => {
     if (!selectedProduit) return;
-    onAdd(selectedProduit); // 👉 délègue l’ajout au parent (Scan.jsx)
+
+    // Cherche si le produit existe déjà dans le panier
+    const existing = panier?.find(p => (p.idSansCode || p.code) === (selectedProduit.idSansCode || selectedProduit.code));
+
+    const produitToAdd = {
+      ...selectedProduit,
+      idSansCode: selectedProduit.idSansCode || `sc_${Date.now()}`,
+      quantite: existing ? existing.quantite + 1 : 1,
+      ajoute_le: selectedProduit.ajoute_le || new Date().toISOString(),
+    };
+
+    onAdd(produitToAdd); // délègue l’ajout au parent (Scan.jsx)
+
+    // Reset champ
     setSelectedProduit(null);
     setSearchTerm("");
     if (onClose) onClose();

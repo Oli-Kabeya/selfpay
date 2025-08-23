@@ -1,4 +1,3 @@
-// Scan.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { useLocation } from 'react-router-dom';
@@ -12,7 +11,7 @@ import { syncPendingData, isOnline as checkOnline } from '../utils/offlineUtils'
 import './Scan.css';
 
 export default function Scan() {
-  const { addToPanier } = usePanier();
+  const { addToPanier, panier } = usePanier();
   const { t } = useTranslation();
   const location = useLocation();
 
@@ -27,7 +26,7 @@ export default function Scan() {
   // Modal quantité
   const [quantityModalVisible, setQuantityModalVisible] = useState(false);
   const [produitEnAttente, setProduitEnAttente] = useState(null);
-  const [quantite, setQuantite] = useState(1);
+  const [quantite, setQuantite] = useState('');
 
   const videoRef = useRef(null);
   const codeReaderRef = useRef(null);
@@ -96,27 +95,33 @@ export default function Scan() {
   const demanderQuantite = (produit) => {
     stopCamera();
     setProduitEnAttente(produit);
-    setQuantite(1);
+    setQuantite('');
     setQuantityModalVisible(true);
   };
 
   const confirmerQuantite = async () => {
-    if (!produitEnAttente || !quantite || quantite < 1) return;
+    const qty = Number(quantite);
+    if (!produitEnAttente || !qty || qty < 1) return;
 
-    await addToPanier({ ...produitEnAttente, quantite: Number(quantite) });
+    const produitToAdd = {
+      ...produitEnAttente,
+      quantite: qty
+    };
+
+    await addToPanier(produitToAdd);
 
     setMessage(t('productAdded') || 'Produit ajouté');
     setTimeout(() => setMessage(''), 1500);
 
     setQuantityModalVisible(false);
     setProduitEnAttente(null);
-    setQuantite(1);
+    setQuantite('');
   };
 
   const annulerQuantite = () => {
     setQuantityModalVisible(false);
     setProduitEnAttente(null);
-    setQuantite(1);
+    setQuantite('');
   };
 
   const ajouterProduit = async (code) => {
@@ -210,15 +215,35 @@ export default function Scan() {
         </div>
       )}
 
-      {showSansCodes && <SansCodesDropdown onAdd={ajouterProduitSansCodeDirect} onClose={()=>setShowSansCodes(false)} produits={produitsSansCodes}/>}
+      {showSansCodes && (
+        <SansCodesDropdown
+          onAdd={ajouterProduitSansCodeDirect}
+          onClose={()=>setShowSansCodes(false)}
+          panier={panier}
+        />
+      )}
 
       {quantityModalVisible && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h2>{t('enterQuantity')}</h2>
-            <input type="number" min="1" value={quantite} onChange={e=>setQuantite(Number(e.target.value))} className="quantity-input"/>
+            <input
+              type="number"
+              min="1"
+              value={quantite}
+              onChange={e => setQuantite(e.target.value)}
+              placeholder="1"
+              className="quantity-input"
+            />
             <div className="modal-buttons">
-              <button type="button" className="button-base" onClick={confirmerQuantite}>{t('ok')}</button>
+              <button
+                type="button"
+                className="button-base"
+                onClick={confirmerQuantite}
+                disabled={Number(quantite) < 1}
+              >
+                {t('ok')}
+              </button>
               <button type="button" className="button-base" onClick={annulerQuantite}>{t('cancel')}</button>
             </div>
           </div>

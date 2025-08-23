@@ -1,4 +1,3 @@
-// PanierContext.jsx
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -28,9 +27,9 @@ export function PanierProvider({ children }) {
           const pending = getPendingPanier();
 
           const merged = [
-            ...firestoreArticles.map(p => ({ ...p, ajoute_le: p.ajoute_le || new Date().toISOString() })),
-            ...pending.map(p => ({ ...(p.product || p), ajoute_le: (p.product?.ajoute_le || p.ajoute_le) || new Date().toISOString() })),
-            ...local.map(p => ({ ...p, ajoute_le: p.ajoute_le || new Date().toISOString() }))
+            ...firestoreArticles.map(p => ({ ...p, ajoute_le: p.ajoute_le || new Date().toISOString(), quantite: p.quantite || 1 })),
+            ...pending.map(p => ({ ...(p.product || p), ajoute_le: (p.product?.ajoute_le || p.ajoute_le) || new Date().toISOString(), quantite: (p.product?.quantite || p.quantite) || 1 })),
+            ...local.map(p => ({ ...p, ajoute_le: p.ajoute_le || new Date().toISOString(), quantite: p.quantite || 1 }))
           ];
 
           const unique = Array.from(
@@ -41,7 +40,9 @@ export function PanierProvider({ children }) {
           savePanierLocal(unique);
           clearPendingPanier();
           await setDoc(ref, { articles: unique, updatedAt: new Date() }, { merge: true });
-        } catch (err) { console.error("Erreur init panier:", err); }
+        } catch (err) {
+          console.error("Erreur init panier:", err);
+        }
       }
     });
 
@@ -51,17 +52,23 @@ export function PanierProvider({ children }) {
   useEffect(() => { savePanierLocal(panier); }, [panier]);
 
   const addToPanier = async (produit) => {
-    const idProduit = produit.idSansCode || produit.code;
+    if (!produit) return;
+    const idProduit = produit.idSansCode || produit.code || `sc_${Date.now()}`;
     setPanier(prev => {
       const existe = prev.find(p => (p.idSansCode || p.code) === idProduit);
-      let updated = existe
-        ? prev.map(p => (p.idSansCode || p.code) === idProduit ? { ...p, quantite: (p.quantite || 1) + (produit.quantite || 1) } : p)
-        : [...prev, { ...produit, quantite: produit.quantite || 1, ajoute_le: produit.ajoute_le || new Date().toISOString() }];
+      const updated = existe
+        ? prev.map(p => (p.idSansCode || p.code) === idProduit
+            ? { ...p, quantite: (p.quantite || 1) + (produit.quantite || 1) }
+            : p)
+        : [...prev, { ...produit, quantite: produit.quantite || 1, ajoute_le: produit.ajoute_le || new Date().toISOString(), idSansCode: produit.idSansCode || idProduit }];
 
       savePanierLocal(updated);
 
       if (auth.currentUser && isOnline()) {
-        syncWithFirestore(updated).catch(err => { console.error("Erreur sync Firestore:", err); addPending(KEYS.pending.panier, { action: 'add', product: produit }); });
+        syncWithFirestore(updated).catch(err => {
+          console.error("Erreur sync Firestore:", err);
+          addPending(KEYS.pending.panier, { action: 'add', product: produit });
+        });
       } else {
         addPending(KEYS.pending.panier, { action: 'add', product: produit });
       }
@@ -75,7 +82,10 @@ export function PanierProvider({ children }) {
     setPanier(prev => {
       const updated = nouvelleQuantite <= 0
         ? prev.filter(p => (p.idSansCode || p.code) !== idProduit)
-        : prev.map(p => (p.idSansCode || p.code) === idProduit ? { ...p, quantite: nouvelleQuantite } : p);
+        : prev.map(p => (p.idSansCode || p.code) === idProduit
+            ? { ...p, quantite: nouvelleQuantite }
+            : p
+          );
 
       savePanierLocal(updated);
 
@@ -121,10 +131,10 @@ export function PanierProvider({ children }) {
 
       for (const action of pending) {
         if (action.action === 'add' && action.product) {
-          const idProduit = action.product.idSansCode || action.product.code;
+          const idProduit = action.product.idSansCode || action.product.code || `sc_${Date.now()}`;
           const existe = firestoreArticles.find(p => (p.idSansCode || p.code) === idProduit);
           if (existe) existe.quantite += action.product.quantite || 1;
-          else firestoreArticles.push({ ...action.product, quantite: action.product.quantite || 1, ajoute_le: action.product.ajoute_le || new Date().toISOString() });
+          else firestoreArticles.push({ ...action.product, quantite: action.product.quantite || 1, ajoute_le: action.product.ajoute_le || new Date().toISOString(), idSansCode: action.product.idSansCode || idProduit });
         }
         if (action.action === 'update' && action.product) {
           firestoreArticles = firestoreArticles.map(p =>
@@ -143,11 +153,17 @@ export function PanierProvider({ children }) {
       savePanierLocal(unique);
       await syncWithFirestore(unique);
       clearPendingPanier();
-    } catch (err) { console.error("Erreur sync panier:", err); }
-    finally { syncingRef.current = false; }
+    } catch (err) {
+      console.error("Erreur sync panier:", err);
+    } finally {
+      syncingRef.current = false;
+    }
   };
 
-  useEffect(() => { window.addEventListener("online", syncPending); return () => window.removeEventListener("online", syncPending); }, []);
+  useEffect(() => {
+    window.addEventListener("online", syncPending);
+    return () => window.removeEventListener("online", syncPending);
+  }, []);
 
   return (
     <PanierContext.Provider value={{ panier, addToPanier, updateQuantity, removeFromPanier, syncPending }}>
