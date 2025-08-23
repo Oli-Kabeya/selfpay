@@ -1,3 +1,4 @@
+// ListeOverlay.jsx (corrigé pour multi-utilisateurs)
 import React, { useEffect, useRef, useState } from 'react';
 import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -15,12 +16,16 @@ export default function ListeOverlay({ onClose }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const getUserKey = (uid) => `${KEYS.liste}_${uid}`;
+
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
 
-    // ⚡ Charger depuis localStorage immédiatement
-    const localData = loadLocal(KEYS.liste) || [];
+    const localKey = getUserKey(user.uid);
+
+    // ⚡ Charger depuis localStorage immédiatement pour l'utilisateur courant
+    const localData = loadLocal(localKey) || [];
     setItems(localData);
     setLoading(false);
 
@@ -38,7 +43,7 @@ export default function ListeOverlay({ onClose }) {
         const unique = Array.from(map.values());
 
         setItems(unique);
-        saveLocal(KEYS.liste, unique);
+        saveLocal(localKey, unique);
         await setDoc(docRef, { items: unique }, { merge: true });
       } catch (err) {
         console.error('Erreur de chargement Firestore:', err);
@@ -49,8 +54,8 @@ export default function ListeOverlay({ onClose }) {
 
     // ⚡ Écoute stockage local pour mise à jour live
     const handleStorageChange = (e) => {
-      if (e.key === KEYS.liste) {
-        setItems(loadLocal(KEYS.liste) || []);
+      if (e.key === localKey) {
+        setItems(loadLocal(localKey) || []);
       }
     };
     window.addEventListener('storage', handleStorageChange);
@@ -58,14 +63,16 @@ export default function ListeOverlay({ onClose }) {
   }, []);
 
   const toggleChecked = async (id) => {
+    const user = auth.currentUser;
+    if (!user) return;
+    const localKey = getUserKey(user.uid);
+
     const updatedItems = items.map(item =>
       item.id === id ? { ...item, checked: !item.checked } : item
     );
     setItems(updatedItems);
-    saveLocal(KEYS.liste, updatedItems);
+    saveLocal(localKey, updatedItems);
 
-    const user = auth.currentUser;
-    if (!user) return;
     if (isOnline()) {
       try {
         const docRef = doc(db, 'listes_courses', user.uid);

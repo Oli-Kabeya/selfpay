@@ -1,4 +1,4 @@
-// Liste.jsx
+// Liste.jsx (corrigé avec gestion multi-utilisateurs)
 import React, { useEffect, useState } from 'react';
 import { auth, db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -20,6 +20,10 @@ export default function Liste() {
   const [editingId, setEditingId] = useState(null);
   const [editingText, setEditingText] = useState('');
 
+  // --- Générer une clé locale unique par utilisateur
+  const getUserKey = (uid) => `${KEYS.liste}_${uid}`;
+  const getPendingKey = (uid) => `${KEYS.pending.liste}_${uid}`;
+
   // --- Chargement initial
   useEffect(() => {
     const user = auth.currentUser;
@@ -28,9 +32,11 @@ export default function Liste() {
       return;
     }
 
-    // ⚡ Affiche d'abord la version locale
-    const localItems = loadLocal(KEYS.liste) || [];
-    // Tri local par timestamp décroissant
+    const localKey = getUserKey(user.uid);
+    const pendingKey = getPendingKey(user.uid);
+
+    // ⚡ Affiche d'abord la version locale spécifique à l'utilisateur
+    const localItems = loadLocal(localKey) || [];
     localItems.sort((a,b) => new Date(b.ajoute_le) - new Date(a.ajoute_le));
     setItems(localItems);
     setLoading(false);
@@ -42,20 +48,19 @@ export default function Liste() {
         const docRef = doc(db, 'listes_courses', user.uid);
         const snap = await getDoc(docRef);
         const firestoreItems = snap.exists() ? snap.data().items || [] : [];
-        const pending = loadLocal(KEYS.pending.liste) || [];
+        const pending = loadLocal(pendingKey) || [];
 
         // Fusion + déduplication (priorité aux données locales)
         const merged = [...firestoreItems, ...pending, ...localItems];
         const unique = Array.from(new Map(merged.map(p => [p.id || JSON.stringify(p), p])).values());
 
-        // Tri par ajoute_le décroissant
         unique.sort((a,b) => new Date(b.ajoute_le) - new Date(a.ajoute_le));
 
         setItems(unique);
-        saveLocal(KEYS.liste, unique);
+        saveLocal(localKey, unique);
 
         await setDoc(docRef, { items: unique }, { merge: true });
-        saveLocal(KEYS.pending.liste, []);
+        saveLocal(pendingKey, []);
       } catch (err) {
         console.error('Erreur chargement liste:', err);
       } finally {
@@ -67,22 +72,27 @@ export default function Liste() {
   }, [navigate]);
 
   const updateList = async (newItems) => {
-    // Tri par timestamp décroissant
     newItems.sort((a,b) => new Date(b.ajoute_le) - new Date(a.ajoute_le));
     setItems(newItems);
-    saveLocal(KEYS.liste, newItems);
 
     const user = auth.currentUser;
-    if (user && isOnline()) {
+    if (!user) return;
+
+    const localKey = getUserKey(user.uid);
+    const pendingKey = getPendingKey(user.uid);
+
+    saveLocal(localKey, newItems);
+
+    if (isOnline()) {
       try {
         const ref = doc(db, 'listes_courses', user.uid);
         await setDoc(ref, { items: newItems }, { merge: true });
         syncPendingData();
       } catch {
-        addPending(KEYS.pending.liste, { type: 'setList', items: newItems });
+        addPending(pendingKey, { type: 'setList', items: newItems });
       }
     } else {
-      addPending(KEYS.pending.liste, { type: 'setList', items: newItems });
+      addPending(pendingKey, { type: 'setList', items: newItems });
     }
   };
 
@@ -172,9 +182,8 @@ export default function Liste() {
             ))}
           </ul>
         )}
-
-        
       </div>
+
       {items.length > 0 && (
           <div className="liste-actions">
             <button 

@@ -1,4 +1,4 @@
-// Scan.jsx (corrigé avec fermeture caméra avant modal + fix quantite)
+// Scan.jsx (corrigé : appel addToPanier + input fiable)
 import React, { useEffect, useState, useRef } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import { useLocation } from 'react-router-dom';
@@ -12,7 +12,7 @@ import { syncPendingData, isOnline as checkOnline } from '../utils/offlineUtils'
 import './Scan.css';
 
 export default function Scan() {
-  const { addToCart } = usePanier(); // ✅ renommé pour correspondre à PanierContext
+  const { addToPanier } = usePanier();
   const { t } = useTranslation();
   const location = useLocation();
 
@@ -24,7 +24,7 @@ export default function Scan() {
   const [scanCountdown, setScanCountdown] = useState(10);
   const [showSansCodes, setShowSansCodes] = useState(false);
 
-  // --- Nouveaux états pour modal quantité
+  // Modal quantité
   const [quantityModalVisible, setQuantityModalVisible] = useState(false);
   const [produitEnAttente, setProduitEnAttente] = useState(null);
   const [quantite, setQuantite] = useState(1);
@@ -37,7 +37,7 @@ export default function Scan() {
   const processingRef = useRef(false);
   const scanningRef = useRef(false);
 
-  // --- Gestion online/offline + sync
+  // --- Gestion online/offline
   useEffect(() => {
     const updateStatus = () => {
       const online = checkOnline();
@@ -93,27 +93,31 @@ export default function Scan() {
     setMessage('');
   };
 
-  // --- Afficher modal de quantité pour un produit
+  // --- Modal quantité
   const demanderQuantite = (produit) => {
-    stopCamera(); // ✅ fermer caméra avant d'afficher le modal
+    stopCamera();
     setProduitEnAttente(produit);
     setQuantite(1);
     setQuantityModalVisible(true);
   };
 
   const confirmerQuantite = async () => {
-    if (produitEnAttente) {
-      await addToCart({ ...produitEnAttente, quantite: quantite }); // ✅ corriger clé quantite
-      setMessage(t('productAdded') || 'Produit ajouté');
-      setTimeout(() => setMessage(''), 1500);
-    }
+    if (!produitEnAttente || !quantite || quantite < 1) return;
+
+    await addToPanier({ ...produitEnAttente, quantite: Number(quantite) });
+
+    setMessage(t('productAdded') || 'Produit ajouté');
+    setTimeout(() => setMessage(''), 1500);
+
     setQuantityModalVisible(false);
     setProduitEnAttente(null);
+    setQuantite(1);
   };
 
   const annulerQuantite = () => {
     setQuantityModalVisible(false);
     setProduitEnAttente(null);
+    setQuantite(1);
   };
 
   // --- Ajouter produit scanné
@@ -126,7 +130,6 @@ export default function Scan() {
       return;
     }
 
-    // Fallback produit manuel
     const produitManuel = { nom: `${t('manualProduct')} ${code.slice(0,5)}`, prix: 1, code };
     demanderQuantite(produitManuel);
   };
@@ -201,7 +204,13 @@ export default function Scan() {
       <p className="scan-subtitle">{t('tapToAddProduct')}</p>
 
       {!scanning && !showSansCodes && (
-        <div className="scan-button-container" onClick={() => setScanning(true)} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && setScanning(true)}>
+        <div
+          className="scan-button-container"
+          onClick={() => setScanning(true)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => e.key === 'Enter' && setScanning(true)}
+        >
           <div className="scan-button"><Barcode size={40}/></div>
         </div>
       )}
@@ -213,7 +222,6 @@ export default function Scan() {
             <div className="scan-progress" style={{ width: `${(scanCountdown/10)*100}%` }}></div>
             <span>{scanCountdown}s</span>
           </div>
-
           <div className="camera-buttons-row">
             <button onClick={handleCloseCamera} className="camera-button camera-close">
               <X size={16}/> {t('closeCamera') || 'Fermer caméra'}
@@ -224,10 +232,10 @@ export default function Scan() {
 
       {showSansCodes && (
         <div className="sans-codes-wrapper">
-          <SansCodesDropdown 
-            onAdd={ajouterProduitSansCodeDirect} 
-            onClose={() => setShowSansCodes(false)} 
-            produits={produitsSansCodes} 
+          <SansCodesDropdown
+            onAdd={ajouterProduitSansCodeDirect}
+            onClose={() => setShowSansCodes(false)}
+            produits={produitsSansCodes}
           />
         </div>
       )}
@@ -242,30 +250,29 @@ export default function Scan() {
               min="1"
               value={quantite}
               onChange={(e) => {
-                let val = e.target.value;
+                const val = e.target.value;
                 if (val === "") {
                   setQuantite("");
                   return;
                 }
-                let num = Number(val);
-                if (num < 1) {
-                  setQuantite("");
-                } else {
+                const num = Number(val);
+                if (!isNaN(num) && num >= 1) {
                   setQuantite(num);
+                }
+              }}
+              onBlur={() => {
+                if (quantite === "" || quantite < 1) {
+                  setQuantite(1);
                 }
               }}
               className="quantity-input"
             />
 
             <div className="modal-buttons">
-              <button
-                className="button-base"
-                onClick={confirmerQuantite}
-                disabled={!quantite || quantite < 1}
-              >
+              <button type="button" className="button-base" onClick={confirmerQuantite}>
                 {t('ok')}
               </button>
-              <button className="button-base" onClick={annulerQuantite}>
+              <button type="button" className="button-base" onClick={annulerQuantite}>
                 {t('cancel')}
               </button>
             </div>
@@ -273,9 +280,7 @@ export default function Scan() {
         </div>
       )}
 
-      {message && (
-        <div className="global-message">{message}</div>
-      )}
+      {message && <div className="global-message">{message}</div>}
 
       {showListeOverlay && <ListeOverlay onClose={()=>setShowListeOverlay(false)} />}
     </div>
